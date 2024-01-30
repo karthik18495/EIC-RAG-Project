@@ -91,8 +91,7 @@ def request_account():
             I would like to use the account for the following reason: \n 
             {reason}
             """
-            send_email(
-                "user": usermail,
+            send_email(usermail,
                 f"New Account Request for {last_name} {first_name}",
                 Body
             )
