@@ -18,7 +18,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-        'Get in touch': 'https://eic.ai',
+        'Get help': 'https://eic.ai',
         'Report a bug': "https://github.com/wmdataphys/EIC-RAG-Project",
         'About': "# AI4EIC RAG System",
     }
