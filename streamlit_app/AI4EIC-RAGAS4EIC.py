@@ -4,6 +4,7 @@ import streamlit as st
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 os.environ["TRUBRICS_EMAIL"] = st.secrets["TRUBRICS_EMAIL"]
 os.environ["TRUBRICS_PASSWORD"] = st.secrets["TRUBRICS_PASSWORD"]
+os.environ["STREAMLIT_THEME_BASE"] = "dark"
 
 if st.secrets.get("LANGCHAIN_API_KEY"):
     os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
@@ -17,9 +18,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-        'Get Help': 'https://www.extremelycoolapp.com/help',
+        'Get in touch': 'https://eic.ai',
         'Report a bug': "https://github.com/wmdataphys/EIC-RAG-Project",
-        'About': "# This is a header. This is an *extremely* cool app!"
+        'About': "# AI4EIC RAG System",
     }
 )
 st.warning("This project is being continuously developed. Please report any feedback to ai4eic@gmail.com")

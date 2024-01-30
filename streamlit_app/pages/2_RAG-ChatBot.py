@@ -36,7 +36,6 @@ if not os.path.exists(st.secrets["USER_DB"]):
 
 os.environ["USER_DB"] = st.secrets["USER_DB"]
 
-
 # Creating OpenAIEmbedding()
 
 embeddings = OpenAIEmbeddings()
