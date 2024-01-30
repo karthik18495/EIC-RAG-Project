@@ -10,13 +10,13 @@ def check_username_exists(username):
     pass
 
 # Assuming you have a function to send an email
-def send_email(to_address: dict, subject: str, message: str, pword: str):
+def send_email(to_address: str, subject: str, message: str):
     from_address = st.secrets["ADMIN_EMAIL"]
     password = st.secrets["ADMIN_PASSWORD"]
 
     msg = MIMEMultipart()
     msg['From'] = from_address
-    msg['To'] = to_address.get("user")
+    msg['To'] = to_address
     msg['Subject'] = subject
 
     body = message
@@ -26,12 +26,10 @@ def send_email(to_address: dict, subject: str, message: str, pword: str):
     server.starttls()
     server.login(from_address, password)
     text = msg.as_string()
-    server.sendmail(from_address, to_address.get("user"), text)
-    msg["To"] = to_address.get("admin")
-    msg.attach(MIMEText(body + f"\n Password: pword" , 'plain'))
-    text = msg.as_string()
-    server.sendmail(from_address, to_address.get("admin"), text)
+    server.sendmail(from_address, to_address, text)
     server.quit()
+    
+    
 
 def check_username(username: str):
     isValid = True
@@ -88,18 +86,21 @@ def request_account():
         elif get_user_info(st.secrets["USER_DB"], username):
             st.error("Username already exists. Please choose a different one.")
         else:
-            Body = f"First Name: {first_name}\nLast Name: {last_name}\nUsername: {username}\nInstitution: {institution}\nReason: {reason}"
             Body = f"""
             Hi, AI4EIC Team
             I am {first_name} {last_name} from {institution} and I am requesting an account for the username {username}. to start using the AI4EIC Chat Bot, \n
             I would like to use the account for the following reason: \n 
             {reason}
             """
-            hashed_pword = hash_password(password)
             send_email(
                 {"user": usermail, "admin": st.secrets["ADMIN_EMAIL"]},
                 f"New Account Request for {last_name} {first_name}",
-                Body, hashed_pword
+                Body
+            )
+            Body += f"\n\nPassword: {password}"
+            send_email(st.secrets["ADMIN_EMAIL"], 
+                       f"New account for {first_name} {last_name}",
+                       Body
             )
             st.success("Your request has been sent to the admin. Shall revert back in a day.")
 if __name__ == "__main__":

@@ -29,29 +29,7 @@ with col1:
     st.image("https://indico.bnl.gov/event/19560/logo-410523303.png")
 with col2:
     st.title("""AI4EIC-RAG System""", anchor = "AI4EIC-RAG-QA-Bot", help = "Will Link to arxiv proceeding here.")
-    
 
-st.header("About")
-st.write(""" 
-    This is the AI4EIC-RAG System. It is a QA-ChatBot designed to assist with [specific functionality]. 
-    This project is being continuously developed. Please report any feedback to ai4eic@gmail.com.
-    """)
-
-st.header("How to Use")
-st.write("""
-    1. [Step 1]
-    2. [Step 2]
-    3. [Step 3]
-    4. [Step 4]
-    """)
-
-
-st.header("FAQs")
-st.write("""
-    **Q1: [Question 1]?**
-    A1: [Answer 1]
-
-    **Q2: [Question 2]?**
-    A2: [Answer 2]
-    """)
+content = open("streamlit_app/Resources/Markdowns/introduction.md", "r").read()
+st.markdown(content)
     
