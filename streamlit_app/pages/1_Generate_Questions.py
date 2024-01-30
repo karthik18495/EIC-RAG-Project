@@ -33,8 +33,6 @@ articles = open("streamlit_app/Resources/ARXIV_SOURCES.info", "r").readlines()
 def load_article(key: bool):
       st.session_state["QuestionGen"] = key
 
-if not st.session_state.get("Info_Container"):
-    st.session_state["Info_Container"] = st.container()
 with st.container():
     pressed = st.button("Load an article", on_click = load_article, args = (True,))
     if pressed:
@@ -99,23 +97,23 @@ prefix = """
             For instance, an example of a targetted question with 2 claims is as follows:
             
             Q: When and Where will the Electron Ion Collider be constructed?
-            A:  ```python \n
+            A:  ```
                 {"n_claims" : 2, 
                 "claims": ["When will Electron Ion Collider be constructed", "Where will Electron Ion Collider be constructed"], 
                 "complete_response": " The Electron Ion Collider will be constructed in Long Island in NewYork by the end of 2035. \n", 
                 "answers": ["Long Island in NewYork", "2035"]
-                } \n
+                }
                 ```
             
             Another example of a question with 3 claims is shown below
             
             Q: What is the dimension of the MAPS pixel layer in ITS3 EIC techonology? How many layers of MAPS detector will be in EIC? What is the thickness of the MAPS layer?
-            A:  ```python \n
+            A:  ```
                 {"n_claims" : 3, 
                 "claims": ["dimension of MAPS pixel layer", "number of layers of MAPS detector", "thickness of MAPS layer"], 
                 "complete_response": " Dimensions of MAPS pixel layer is 10x10 mm. \n There are a total of 7 layers in MAPS detector at EIC. \n The thickness of each layer of MAPS detector is 5um. ", 
                 "answers": ["10x10mm", "7", "5um"]
-                } \n
+                }
                 ```
             """
 prompt = PromptTemplate.from_template(response)
