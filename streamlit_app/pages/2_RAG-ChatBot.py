@@ -73,7 +73,7 @@ DBProp = {"LANCE" : {"vector_config" : {"db_name" : st.secrets["LANCEDB_DIR"],
           }
 # Creating retriever
 
-retriever = GetRetriever("CHROMA", DBProp["CHROMA"]["vector_config"], DBProp["CHROMA"]["search_config"])
+retriever = GetRetriever("PINECONE", DBProp["PINECONE"]["vector_config"], DBProp["PINECONE"]["search_config"])
 st.set_page_config(page_title="AI4EIC-RAG QA-ChatBot", page_icon="https://indico.bnl.gov/event/19560/logo-410523303.png", layout="wide")
 st.warning("This project is being continuously developed. Please report any feedback to ai4eic@gmail.com")
 col_l, col1, col2, col_r = st.columns([1, 3, 3, 1])

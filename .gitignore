@@ -12,6 +12,8 @@ __pycache__/
 streamlit_app/.streamlit/
 *.toml
 
+*.devcontainer
+
 # Distribution / packaging
 .Python
 build/
