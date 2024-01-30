@@ -23,7 +23,7 @@ with col1:
 with col2:
     st.title("""Generate Questions for Evaluations""", anchor = "GenerateQuestions", help = "Will Link to arxiv proceeding here.")
 
-articles = open("Resources/ARXIV_SOURCES.info", "r").readlines()  
+articles = open("streamlit_app/Resources/ARXIV_SOURCES.info", "r").readlines()  
 
 def load_article(key: bool):
       st.session_state["QuestionGen"] = key
