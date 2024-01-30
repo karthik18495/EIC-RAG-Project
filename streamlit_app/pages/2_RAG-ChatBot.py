@@ -216,7 +216,7 @@ html blocks is retrieved from a knowledge bank, not part of the conversation wit
 user.\
 Question: {question}
 """
-response = open("/mnt/d/LLM-Project/FinalRAG-Retrieval/EIC-RAG-Project/Templates/reponse_01.template", "r").read()
+response = open("Templates/reponse_01.template", "r").read()
 response_rewrite = """\
 Follow the instructions very very strictly. Do not add anything else in the response. Do not hallucinate nor make up answers.
 - The content below within the tags <MARKDOWN_RESPONSE> and </MARKDOWN_RESPONSE> is presented within a `st.markdown` container in a streamlit chat window. 
