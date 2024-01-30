@@ -24,7 +24,7 @@ with col2:
     st.title("""Generate Questions for Evaluations""", anchor = "GenerateQuestions", help = "Will Link to arxiv proceeding here.")
 
 
-if not st.session_state.get("username"):
+if not st.session_state.get("user_name"):
     st.error("Please login to your account first.")
     st.stop()
 
