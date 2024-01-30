@@ -85,7 +85,7 @@ def request_account():
         st.session_state["Reason"] = reason
         if not check_username(username):
             st.error("Username must be a combination of alphabets, numbers and underscores.")
-        elif get_user_info(st.secrets["USER_DB"], username)[0]:
+        elif get_user_info(st.secrets["USER_DB"], username):
             st.error("Username already exists. Please choose a different one.")
         else:
             Body = f"First Name: {first_name}\nLast Name: {last_name}\nUsername: {username}\nInstitution: {institution}\nReason: {reason}"
