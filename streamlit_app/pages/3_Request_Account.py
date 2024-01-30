@@ -21,7 +21,6 @@ def send_email(to_address: str, subject: str, message: str):
 
     body = message
     msg.attach(MIMEText(body, 'plain'))
-
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
     server.login(from_address, password)
@@ -40,7 +39,6 @@ def check_username(username: str):
             isValid = False
             break
     return isValid
-
 
 
 def request_account():
@@ -67,12 +65,12 @@ def request_account():
     FrmCol1, FrmCol2 = st.columns([1, 1])
     with FrmCol1:
         first_name = st.text_input("First Name", value = st.session_state.get("FirstName", ""))
-        username = st.text_input("Username Combination of alphabets, numbers and underscores")
-        password = st.text_input("Password", type = "password")
-    with FrmCol2:
         last_name = st.text_input("Last Name", value = st.session_state.get("LastName", ""))
-        usermail = st.text_input("Email", value = st.session_state.get("Email", ""))
         institution = st.text_input("Institution", value = st.session_state.get("Institution", ""))
+    with FrmCol2:
+        username = st.text_input("Username Combination of alphabets, numbers and underscores")
+        password = st.text_input("Password (Randomly generate if empty)", type = "password")
+        usermail = st.text_input("Email", value = st.session_state.get("Email", ""))
     reason = st.text_area("Reason for requesting an account", value = st.session_state.get("Reason", ""))
     if st.button("Submit"):
         st.session_state["FirstName"] = first_name
@@ -81,6 +79,7 @@ def request_account():
         st.session_state["Email"] = usermail
         st.session_state["Institution"] = institution
         st.session_state["Reason"] = reason
+        password = password.replace(" ", "").replace("\t", "")
         if not check_username(username):
             st.error("Username must be a combination of alphabets, numbers and underscores.")
         elif get_user_info(st.secrets["USER_DB"], username):
@@ -93,7 +92,7 @@ def request_account():
             {reason}
             """
             send_email(
-                {"user": usermail, "admin": st.secrets["ADMIN_EMAIL"]},
+                "user": usermail,
                 f"New Account Request for {last_name} {first_name}",
                 Body
             )

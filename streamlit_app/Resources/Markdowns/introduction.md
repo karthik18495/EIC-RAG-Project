@@ -1,4 +1,4 @@
-# Retrieval Augmented Generation for EIC
+# Retrieval Augmented Generation System for EIC (RAGS4EIC)
 
 This is a project that is currently being developed to build a RAG based system for the upcoming EIC. 
 

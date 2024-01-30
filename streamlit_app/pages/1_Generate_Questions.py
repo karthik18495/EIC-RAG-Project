@@ -23,6 +23,11 @@ with col1:
 with col2:
     st.title("""Generate Questions for Evaluations""", anchor = "GenerateQuestions", help = "Will Link to arxiv proceeding here.")
 
+
+if not st.session_state.get("username"):
+    st.error("Please login to your account first.")
+    st.stop()
+
 articles = open("streamlit_app/Resources/ARXIV_SOURCES.info", "r").readlines()  
 
 def load_article(key: bool):
@@ -80,7 +85,7 @@ Now, Given the text within the tags <content> and </content> Generate {NQUESTION
 Make sure the clearly label your question and answer exactly to the point. 
 Also, Make sure to use the exact information from this document and do not use any other information.
 
-THe answer is formatted as a json object and written in `python` format
+THe answer is formatted as a dictionary (`dict`) object in `python`
 
 <content>
 {CONTEXT}
@@ -98,21 +103,19 @@ prefix = """
                 {"n_claims" : 2, 
                 "claims": ["When will Electron Ion Collider be constructed", "Where will Electron Ion Collider be constructed"], 
                 "complete_response": " The Electron Ion Collider will be constructed in Long Island in NewYork by the end of 2035. \n", 
-                "answers": ["Long Island in NewYork", "2035"], 
-                "relevance_score": 100
+                "answers": ["Long Island in NewYork", "2035"]
                 } \n
                 ```
             
             Another example of a question with 3 claims is shown below
             
             Q: What is the dimension of the MAPS pixel layer in ITS3 EIC techonology? How many layers of MAPS detector will be in EIC? What is the thickness of the MAPS layer?
-            A:  ```python
+            A:  ```python \n
                 {"n_claims" : 3, 
                 "claims": ["dimension of MAPS pixel layer", "number of layers of MAPS detector", "thickness of MAPS layer"], 
                 "complete_response": " Dimensions of MAPS pixel layer is 10x10 mm. \n There are a total of 7 layers in MAPS detector at EIC. \n The thickness of each layer of MAPS detector is 5um. ", 
-                "answers": ["10x10mm", "7", "5um"], 
-                "relevance_score": 100
-                }
+                "answers": ["10x10mm", "7", "5um"]
+                } \n
                 ```
             """
 prompt = PromptTemplate.from_template(response)
