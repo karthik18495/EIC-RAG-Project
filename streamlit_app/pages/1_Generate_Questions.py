@@ -68,7 +68,7 @@ with st.container():
             num_tokens = num_tokens_from_prompt(content, "gpt-3.5-turbo-1106")
         st.subheader("Number of Pages:" + str(len(docs)))
         st.subheader("Number of Tokens:" + str(num_tokens))
-        if (num_tokens > 12000):
+        if (num_tokens > 27900):
             st.warning("This article is too long. Please reload to select a shorter article....")
             st.stop()
     

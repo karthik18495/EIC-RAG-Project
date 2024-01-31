@@ -31,6 +31,14 @@ with col1:
 with col2:
     st.title("""AI4EIC-RAG System""", anchor = "AI4EIC-RAG-QA-Bot", help = "Will Link to arxiv proceeding here.")
 
+if st.session.get("user_name"):
+    with st.sidebar():
+        st.write("---")
+        st.write("## Welcome back!")
+        st.write("### " + st.session.get("first_name") + st.session.get("last_name"))
+        st.write("---")
+
+
 content = open("streamlit_app/Resources/Markdowns/introduction.md", "r").read()
 st.markdown(content)
     
