@@ -31,7 +31,7 @@ with col1:
 with col2:
     st.title("""AI4EIC-RAG System""", anchor = "AI4EIC-RAG-QA-Bot", help = "Will Link to arxiv proceeding here.")
 
-if st.session.get("user_name"):
+if st.session_state.get("user_name"):
     with st.sidebar():
         st.write("---")
         st.write("## Welcome back!")
