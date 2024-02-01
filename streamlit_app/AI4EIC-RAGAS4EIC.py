@@ -33,14 +33,12 @@ with col2:
 
 if st.session_state.get("user_name"):
     with st.sidebar:
-        st.write("---")
-        st.write("## Welcome back!")
+        st.write("# Welcome back!")
         st.write("### " + 
                  st.session_state.get("first_name", "") + 
                  " " + 
                  st.session_state.get("last_name", "")
                  )
-        st.write("---")
 
 
 content = open("streamlit_app/Resources/Markdowns/introduction.md", "r").read()
