@@ -18,7 +18,7 @@ os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_EVAL_PROJECT"]
 SetHeader("RAG Generate Questions")
 # Some explanations to do 
 
-st.markdown(open("/mnt/d/LLM-Project/EIC-RAG-Project/streamlit_app/Resources/Markdowns/QA_Generation.md", "r").read())
+st.markdown(open("streamlit_app/Resources/Markdowns/QA_Generation.md", "r").read())
 
 if not st.session_state.get("user_name"):
     st.error("Please login to your account first to further continue and generate questions.")
