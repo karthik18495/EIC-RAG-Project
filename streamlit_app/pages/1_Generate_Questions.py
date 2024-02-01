@@ -11,21 +11,17 @@ import numpy as np
 import arxiv, os
 from operator import itemgetter
 
-from app_utilities import num_tokens_from_prompt
+from app_utilities import num_tokens_from_prompt, SetHeader
 
 os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_EVAL_PROJECT"]
 
-st.set_page_config(page_title="AI4EIC-RAG QA-ChatBot", page_icon="https://indico.bnl.gov/event/19560/logo-410523303.png", layout="wide")
-st.warning("This project is being continuously developed. Please report any feedback to ai4eic@gmail.com")
-col_l, col1, col2, col_r = st.columns([1, 3, 3, 1])
-with col1:
-    st.image("https://indico.bnl.gov/event/19560/logo-410523303.png")
-with col2:
-    st.title("""Generate Questions for Evaluations""", anchor = "GenerateQuestions", help = "Will Link to arxiv proceeding here.")
+SetHeader("RAG Generate Questions")
+# Some explanations to do 
 
+st.markdown(open("/mnt/d/LLM-Project/EIC-RAG-Project/streamlit_app/Resources/Markdowns/QA_Generation.md", "r").read())
 
 if not st.session_state.get("user_name"):
-    st.error("Please login to your account first.")
+    st.error("Please login to your account first to further continue and generate questions.")
     st.stop()
 
 articles = open("streamlit_app/Resources/ARXIV_SOURCES.info", "r").readlines()  

@@ -1,7 +1,7 @@
 from openai import OpenAI
 import streamlit as st
 
-import os, bcrypt
+import os
 from trubrics import Trubrics
 
 
@@ -14,6 +14,14 @@ import time
 
 from app_utilities import *
 
+SetHeader("AI4EIC-RAG ChatBot")
+
+# Include some explanations
+
+if not st.session_state.get("user_name"):
+    st.error("Please login to your account first to further continue.")
+    st.stop()
+
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 os.environ["TRUBRICS_EMAIL"] = st.secrets["TRUBRICS_EMAIL"]
 os.environ["TRUBRICS_PASSWORD"] = st.secrets["TRUBRICS_PASSWORD"]
@@ -23,19 +31,6 @@ if st.secrets.get("LANGCHAIN_API_KEY"):
     os.environ["LANGCHAIN_TRACING_V2"] = st.secrets["LANGCHAIN_TRACING_V2"]
     os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
     os.environ["LANGCHAIN_ENDPOINT"] = st.secrets["LANGCHAIN_ENDPOINT"]
-    
-# Check if users db exists
-
-if not st.secrets.get("USER_DB"):
-    st.error("Users DB not provided. Please provide in secrets.toml and then run the app again")
-    Exception("Users DB not provided. Please provide in secrets.toml and then run the app again")
-
-if not os.path.exists(st.secrets["USER_DB"]):
-    st.error(f"Users DB {st.secrets['USER_DB']} does not exist.")
-    Exception("Users DB does not exist. Please provide in secrets.toml and then run the app again")
-
-os.environ["USER_DB"] = st.secrets["USER_DB"]
-
 # Creating OpenAIEmbedding()
 
 embeddings = OpenAIEmbeddings()
@@ -73,34 +68,9 @@ DBProp = {"LANCE" : {"vector_config" : {"db_name" : st.secrets["LANCEDB_DIR"],
 # Creating retriever
 
 retriever = GetRetriever("PINECONE", DBProp["PINECONE"]["vector_config"], DBProp["PINECONE"]["search_config"])
-st.set_page_config(page_title="AI4EIC-RAG QA-ChatBot", page_icon="https://indico.bnl.gov/event/19560/logo-410523303.png", layout="wide")
-st.warning("This project is being continuously developed. Please report any feedback to ai4eic@gmail.com")
-col_l, col1, col2, col_r = st.columns([1, 3, 3, 1])
-with col1:
-    st.image("https://indico.bnl.gov/event/19560/logo-410523303.png")
-with col2:
-    st.title("""AI4EIC - RAG QA-ChatBot""", anchor = "AI4EIC-RAG-QA-Bot", help = "Will Link to arxiv proceeding here.")
+
+
 with st.sidebar:
-    with st.form("User Name"):
-        st.info("By providing your name, you agree that all the prompts and responses will be recorded and will be used to further improve RAG methods")
-        name = st.text_input("What's your username?")
-        password = st.text_input("What's your password?", type="password")
-        submitted = st.form_submit_button("Submit and start")
-        if submitted:
-            userInfo = get_user_info(os.environ["USER_DB"], name)
-            if (userInfo == None):
-                st.error("User not found. Please try again")
-                st.stop()
-            elif (userInfo[-1]!= password):
-                st.error("Incorrect password. Please try again")
-                st.stop()
-            else:
-                for key in st.session_state:
-                    del st.session_state[key]
-                st.session_state["user_name"] = userInfo[0].lower()
-                st.session_state["first_name"] =  userInfo[1]
-                st.session_state["last_name"] =  userInfo[2]
-                st.success("Welcome {} {}!".format(userInfo[1], userInfo[2]))
     if (st.session_state.get("user_name")):
         with st.container():
             st.info("Select VecDB and Properties")
@@ -111,9 +81,6 @@ with st.sidebar:
                 DBProp[db_type]["search_config"]["search_kwargs"]["k"] = max_k
                 DBProp[db_type]["search_config"]["metric"] = SimilarityDict[similiarty_score]
                 retriever = GetRetriever(db_type, DBProp[db_type]["vector_config"], DBProp[db_type]["search_config"])
-
-if "user_name" not in st.session_state:
-    st.stop()
 
 if retriever == None:
     st.stop()
