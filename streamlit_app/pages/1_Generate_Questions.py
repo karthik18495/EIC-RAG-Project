@@ -52,10 +52,12 @@ def LoadArticle(Load: bool, article_keys: list):
     st.session_state.load_article = Load
     st.session_state.generation_count = 0
 
-col_Al, col_A, colAr = st.columns([1, 4, 1])
+st.header("", divider = "rainbow")
+col_Al, col_A, colAr = st.columns([1, 2, 1])
 with col_A:
+    st.header("Load an Article from arxiv database to generate questions")
     st.button("Load an article from arxiv..", on_click = LoadArticle, args = [True, article_keys])
-
+st.header("", divider = "rainbow")
 if st.session_state.load_article:
     with st.status("Loading article...", expanded = True, state = "running") as status:
         st.write("Selecting a random article....")
