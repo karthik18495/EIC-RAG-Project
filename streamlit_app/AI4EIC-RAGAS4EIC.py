@@ -47,7 +47,53 @@ if st.session_state.get("user_name"):
                  st.session_state.get("last_name", "")
                  )
 
-
-content = open("streamlit_app/Resources/Markdowns/introduction.md", "r").read()
-st.markdown(content)
+MainFrame = st.container()
+with MainFrame:
+    MainFrame.title("Retrieval Augmented Generation System for EIC (RAGS4EIC)")
+    MainFrame.markdown("This is a project currently being developed to build a RAG based system for the upcoming Electron Ion Collider")
+    MainFrame.subheader("", divider = "rainbow")
+    MainFrame.header("What is RAG and how it can be used for EIC ?")
+    Im_col1, Im_col2 = st.columns([1, 1])
+    with Im_col1:
+        st.image("streamlit_app/Resources/assets/images/What_is_RAG.png")
+        st.image("streamlit_app/Resources/assets/images/Ingestion_full.png")
+    with Im_col2:
+        st.image("streamlit_app/Resources/assets/images/Why_RAG.png")
+        st.image("streamlit_app/Resources/assets/images/Pipeline.png")
+    MainFrame.subheader("", divider = "rainbow")
+    MainFrame.header("Stages of RAG")
+    MainFrame.markdown("There are distinctively 3 stages in RAG. Namely, Ingestion, Retrieval and Content Fusion Generation.")
+    MainFrame.subheader("Ingestion", divider = "green")
+    MainFrame.markdown("""
+                       Ingestion in Retrieval-Augmented Generation (RAG) 
+                       is a crucial process that involves the preparation and 
+                       organization of data to be used by the model.
+                       """)
+    with st.expander("Expand for more details"):
+        st.write(open("streamlit_app/Resources/Markdowns/ingestion.md", "r").read())
+        st.image("streamlit_app/Resources/assets/images/ingestion.png")
+    
+    MainFrame.subheader("Retrieval", divider = "green")
+    MainFrame.markdown("""
+                       The process of information retrieval 
+                       from a vector database given a user query involves several steps:
+                       """)
+    with st.expander("Expand for more details"):
+        st.markdown(open("streamlit_app/Resources/Markdowns/Retrieval.md", "r").read())
+        st.image("streamlit_app/Resources/assets/images/mermaid-retrieval.png")
+    MainFrame.subheader("Content Fusion Generation", divider = "green")
+    MainFrame.markdown("""
+                       The process of content fusion and response generation involves several steps:
+                       """)
+    with st.expander("Expand for more details"):
+        st.markdown(open("streamlit_app/Resources/Markdowns/content-fusion.md", "r").read())
+        st.image("streamlit_app/Resources/assets/images/mermaid-content.png")
+    MainFrame.subheader("Complete Response Generation", divider = "green")
+    img_coll, img_colc, img_colr = st.columns([1, 2, 1])
+    with img_colc:
+        st.image("streamlit_app/Resources/assets/images/mermaid-content-retrieval-full.png", caption = "Coomplete response generation strategy.")
+    MainFrame.subheader("", divider = "rainbow")
+    MainFrame.header("Project Milestones")
+    st.write(open("streamlit_app/Resources/Markdowns/Project_Milestones.md", "r").read())
+    MainFrame.subheader("", divider = "rainbow")
     
