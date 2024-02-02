@@ -1,6 +1,13 @@
 import os, sys
 import streamlit as st
 
+
+if "OPENAI_API_KEY" not in st.secrets:
+    st.error("Please set the OPENAI_API_KEY secret in your secrets.toml file.")
+    st.stop()
+    
+sys.path.append("$PWD")
+
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 os.environ["TRUBRICS_EMAIL"] = st.secrets["TRUBRICS_EMAIL"]
 os.environ["TRUBRICS_PASSWORD"] = st.secrets["TRUBRICS_PASSWORD"]
