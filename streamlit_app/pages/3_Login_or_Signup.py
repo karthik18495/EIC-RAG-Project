@@ -67,6 +67,7 @@ def request_account():
                 st.session_state["first_name"] =  st.secrets[name]["first_name"]
                 st.session_state["last_name"] =  st.secrets[name]["last_name"]
                 st.success("Welcome {} {}!".format(st.session_state.get("first_name", ""), st.session_state.get("last_name", "")))
+                st.session_state["user_mode"] = int(st.secrets[name]["mode"])
     with st.expander("Request an Account"):
         if st.session_state.get("user_name"):
             st.info("You are already logged in !!!!")
@@ -81,6 +82,10 @@ def request_account():
             password = st.text_input("Password (Randomly generate if empty)", type = "password")
             usermail = st.text_input("Email", value = st.session_state.get("Email", ""))
         reason = st.text_area("Reason for requesting an account", value = st.session_state.get("Reason", ""))
+        contribute = st.checkbox("Would you like to contribute to the project as well?", 
+                                 value = st.session_state.get("Contribute", False), 
+                                 help="If you check this box, you will be added to the contributors list"
+                                 )
         if st.button("Submit"):
             st.session_state["FirstName"] = first_name
             st.session_state["LastName"] = last_name
@@ -88,6 +93,7 @@ def request_account():
             st.session_state["Email"] = usermail
             st.session_state["Institution"] = institution
             st.session_state["Reason"] = reason
+            st.session_state["Contribute"] = contribute
             password = password.replace(" ", "").replace("\t", "")
             if (password == ""):
                 password = gen_password(random.randint(10, 20))
@@ -110,6 +116,7 @@ def request_account():
                             <tr><td>Email:</td><td>{usermail}</td></tr>
                             <tr><td>Institution:</td><td>{institution}</td></tr>
                             <tr><td>Reason for requesting an account:</td><td>{reason}</td></tr>
+                            <tr><td>Would you like to contribute to the project as well?</td><td>{contribute}</td></tr>
                         </table>
                         
                         <p>If you have any questions or clarifications, Please reply back to this email.</p>
@@ -135,9 +142,10 @@ def request_account():
                         <tr><td>Email:</td><td>{usermail}</td></tr>
                         <tr><td>Institution:</td><td>{institution}</td></tr>
                         <tr><td>Reason for requesting an account:</td><td>{reason}</td></tr>
+                        <tr><td>Would you like to contribute to the project as well?</td><td>{contribute}</td></tr>
                         </table>
                         <p> To include in secrets.toml include if approved is </p>
-                        <p> [{username}] <br> first_name="{first_name}" <br> last_name="{last_name}" <br> user_name="{username}" <br> password="{password}" <br> email="{usermail}" <br> institution="{institution}" </p>
+                        <p> [{username}] <br> first_name="{first_name}" <br> last_name="{last_name}" <br> user_name="{username}" <br> password="{password}" <br> email="{usermail}" <br> institution="{institution}" <br> mode="FILL_THIS" </p>
                         <p>Thank you,</p>
                         <p>AI4EIC Team</p>
                         </body>

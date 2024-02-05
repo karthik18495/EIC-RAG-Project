@@ -12,7 +12,7 @@ import arxiv, os
 from operator import itemgetter
 
 from app_utilities import num_tokens_from_prompt, SetHeader
-from langchain import hub
+from langchain import hub, callbacks
 
 from langchain.callbacks import tracing_v2_enabled
 from langsmith import Client
@@ -22,6 +22,7 @@ GPT_CONTEXT_LEN = 27000
 CHAR_PER_TOKEN = 4
 WORD_LIM = GPT_CONTEXT_LEN * CHAR_PER_TOKEN
 
+client = Client()
 SetHeader("RAG Generate Questions")
 # Some explanations to do 
 
@@ -30,6 +31,10 @@ st.markdown(open("streamlit_app/Resources/Markdowns/QA_Generation.md", "r").read
 if not st.session_state.get("user_name"):
     st.error("Please login to your account first to further continue and generate questions.")
     st.stop()
+
+# mode = 0 for user, 1 for annotator, 2 for developer   
+if st.session_state.get("user_mode", -1) > 0:
+    st.toggle("Contribute to Evaluation", value = False, key = "contribute_to_eval", help="Toggle this to contribute to evaluation for each response")
 
 # Start by defining article load as false
 article_keys = ["article_loaded", "article_primary_category", 
@@ -53,7 +58,7 @@ def LoadArticle(Load: bool, article_keys: list):
     st.session_state.generation_count = 0
 
 st.header("", divider = "rainbow")
-col_Al, col_A, colAr = st.columns([1, 2, 1])
+col_Al, col_A, colAr = st.columns([1, 4, 1])
 with col_A:
     st.header("Load an Article from arxiv database to generate questions")
     st.button("Load an article from arxiv..", on_click = LoadArticle, args = [True, article_keys])
@@ -91,7 +96,6 @@ if st.session_state.load_article:
         st.session_state["article_content"] = content
         st.write(f"Article {article} successfully loaded in memory. Precounting tokens now...")
         num_tokens = num_tokens_from_prompt(content, "gpt-3.5-turbo-1106")
-        print (len(full_content), num_tokens)
         st.session_state["article_num_tokens"] = num_tokens
         st.session_state.article_loaded = True
         st.session_state.load_article = False
@@ -170,16 +174,25 @@ with st.container(border = True):
                          temperature=0, 
                          max_tokens=4000
                          )
-        chain = prompt | llm | StrOutputParser()
+        chain = (prompt | llm | StrOutputParser()).with_config({"run_name" : "QA_Generation"})
         for i in range(n_questions):
             full_response = ""
             st.header("Question " + str(i+1) + " from " + st.session_state["article_id"] + " at " + st.session_state["article_url"])
             message_placeholder = st.empty()
-            for chunks in chain.stream({"prefix" : prefix, "NCLAIMS":n_claims, "CONTEXT": st.session_state.get("article_content")}):
-                full_response += (chunks or "")
-                message_placeholder.write(full_response + "▌")
+            metadata = {"username": st.session_state.user_name, 
+                        "article_id": st.session_state["article_id"],
+                        "article_url": st.session_state["article_url"],
+                        "claims" : n_claims
+                        }
+            tags = [f"claims-{n_claims}", st.session_state["article_id"], GPTVersion]
+            with callbacks.collect_runs() as cb:
+                for chunks in chain.stream({"prefix" : prefix, "NCLAIMS":n_claims, "CONTEXT": st.session_state.get("article_content")}, {"metadata": metadata, "tags": tags}):
+                    full_response += (chunks or "")
+                    message_placeholder.write(full_response + "▌")
+                st.session_state.DataGen_run_id = cb.traced_runs[0].id
             message_placeholder.write(full_response)
             st.header("", divider = "rainbow")
             st.session_state.questions.append({"qnum" : f"Gen: {st.session_state.generation_count}, Q: {i}", "question": full_response.split("A:")[0], "answer": full_response.split("A:")[-1]})
             st.session_state["Generate"] = False
+            
             
