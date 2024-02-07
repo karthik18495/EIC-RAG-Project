@@ -136,7 +136,7 @@ with col2:
     st.subheader("Num of Pages and tokens", divider = "rainbow")
     st.markdown(r"__Pages__: " + str(st.session_state.get("article_pages", "")) + r"  &  __Tokens__: " + str(st.session_state.get("article_num_tokens", "")))
 
-if st.session_state.get("article_loaded") and st.session_state.get("article_content") < WORD_LIM:
+if st.session_state.get("article_loaded") and len(st.session_state.get("article_content", [])) < WORD_LIM:
     article_container = st.container(border = True)
     article_container.subheader("Article Content", divider = "rainbow")
     with st.expander("Expand to show", expanded = False):
