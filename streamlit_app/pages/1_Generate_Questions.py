@@ -1,24 +1,20 @@
 from langchain_openai import ChatOpenAI
 from langchain_community.document_loaders import PyPDFLoader
 
-from langchain.schema import StrOutputParser
-from langchain.schema.runnable import RunnablePassthrough
-
-from langchain.prompts import PromptTemplate
-
 import streamlit as st
 import numpy as np
 import arxiv, os
-from operator import itemgetter
 
 from app_utilities import num_tokens_from_prompt, SetHeader
-from langchain import hub, callbacks
-
-from langchain.callbacks import tracing_v2_enabled
+from langchain import callbacks
 from langsmith import Client
 
+from LangChainUtils.LLMChains import RunQuestionGeneration
+
 os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_EVAL_PROJECT"]
-GPT_CONTEXT_LEN = 27000
+os.environ["LANGCHAIN_RUN_NAME"] = "QA Generation"
+
+GPT_CONTEXT_LEN = 27000 # 32k - 4096
 CHAR_PER_TOKEN = 4
 WORD_LIM = GPT_CONTEXT_LEN * CHAR_PER_TOKEN
 
@@ -34,14 +30,22 @@ if not st.session_state.get("user_name"):
 
 # mode = 0 for user, 1 for annotator, 2 for developer   
 if st.session_state.get("user_mode", -1) > 0:
-    st.toggle("Contribute to Evaluation", value = False, key = "contribute_to_eval", help="Toggle this to contribute to evaluation for each response")
+    with st.sidebar:
+        st.toggle("Contribute to Evaluation", value = False, key = "contribute_to_eval", help="Toggle this to contribute to evaluation for each response")
+    if st.session_state.contribute_to_eval:
+        with st.container(border = True):
+            st.title("Langsmith details")
+            st.markdown("## PROJECT NAME: " + os.environ["LANGCHAIN_PROJECT"])
+            st.markdown("## USER: " + st.session_state.get("user_name"))
+            st.markdown("## RUN NAME: " + os.environ["LANGCHAIN_RUN_NAME"])
 
 # Start by defining article load as false
 article_keys = ["article_loaded", "article_primary_category", 
                 "article_categories", "article_title", 
                 "article_abstract", "article_url", "article_doi", 
                 "article_authors", "article_content", "article_id",
-                "article_date", "article_num_tokens", "article_pages"
+                "article_date", "article_num_tokens", "article_pages",
+                "full_content"
                 ]
 
 if "load_article" not in st.session_state:
@@ -90,9 +94,11 @@ if st.session_state.load_article:
         if (len(full_content) > WORD_LIM):
             status.update(label = f"Article {article} is too large to load in memory. Chunking it smaller to fit it.", state = "running", expanded = True)
             st.warning("Too large article to load in memory. Chunking it smaller to fit it.")
-            content = np.random.choice([full_content[i:i+WORD_LIM] for i in range(0, len(full_content), WORD_LIM)])
+            start = np.random.randint(0, len(full_content) - WORD_LIM)
+            content = full_content[start:start + WORD_LIM]
         else:
             content = full_content
+        st.session_state["full_content"] = full_content
         st.session_state["article_content"] = content
         st.write(f"Article {article} successfully loaded in memory. Precounting tokens now...")
         num_tokens = num_tokens_from_prompt(content, "gpt-3.5-turbo-1106")
@@ -130,18 +136,14 @@ with col2:
     st.subheader("Num of Pages and tokens", divider = "rainbow")
     st.markdown(r"__Pages__: " + str(st.session_state.get("article_pages", "")) + r"  &  __Tokens__: " + str(st.session_state.get("article_num_tokens", "")))
 
-if st.session_state.get("article_loaded"):
-    st.subheader("Article Content", divider = "rainbow")
+if st.session_state.get("article_loaded") and st.session_state.get("article_content") < WORD_LIM:
+    article_container = st.container(border = True)
+    article_container.subheader("Article Content", divider = "rainbow")
     with st.expander("Expand to show", expanded = False):
         st.write(st.session_state.get("article_content", ""))
 
 GPTDict = {"3.5": "gpt-3.5-turbo-1106", "4": "gpt-4-0125-preview"}
-
-response = open("Templates/QA_Generations/response_01.template").read()
 prefix = open("Templates/QA_Generations/example_01.template").read()
-
-prompt = PromptTemplate.from_template(response)
-
 
 def gen_submit(generate: bool):
     st.session_state.response_container = st.empty()
@@ -154,6 +156,9 @@ for ques in st.session_state.get("questions", []):
         st.subheader(ques["question"])
         st.subheader("Answer")
         st.write(ques["answer"])
+        if (len(ques["content"]) > WORD_LIM):
+            st.subheader("Content")
+            st.write(ques["content"])
         st.header("", divider = "rainbow")
         
 
@@ -174,7 +179,12 @@ with st.container(border = True):
                          temperature=0, 
                          max_tokens=4000
                          )
-        chain = (prompt | llm | StrOutputParser()).with_config({"run_name" : "QA_Generation"})
+        chain = RunQuestionGeneration(llm).with_config({"run_name" : os.environ["LANGCHAIN_RUN_NAME"]
+                                }
+                               )
+        if (len(st.session_state["full_content"]) > WORD_LIM):
+            _start = np.random.randint(0, len(st.session_state["full_content"]) - WORD_LIM)
+            st.session_state["article_content"] = st.session_state["full_content"][_start:_start + WORD_LIM]
         for i in range(n_questions):
             full_response = ""
             st.header("Question " + str(i+1) + " from " + st.session_state["article_id"] + " at " + st.session_state["article_url"])
@@ -192,7 +202,12 @@ with st.container(border = True):
                 st.session_state.DataGen_run_id = cb.traced_runs[0].id
             message_placeholder.write(full_response)
             st.header("", divider = "rainbow")
-            st.session_state.questions.append({"qnum" : f"Gen: {st.session_state.generation_count}, Q: {i}", "question": full_response.split("A:")[0], "answer": full_response.split("A:")[-1]})
+            st.session_state.questions.append({"qnum" : f"Gen: {st.session_state.generation_count}, Q: {i}", 
+                                               "content" : st.session_state["article_content"],
+                                               "question": full_response.split("A:")[0], 
+                                               "answer": full_response.split("A:")[-1]
+                                               }
+                                              )
             st.session_state["Generate"] = False
             
             

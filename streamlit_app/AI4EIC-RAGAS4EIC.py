@@ -1,12 +1,13 @@
 import os, sys
 import streamlit as st
-
+from streamlit_react_flow import react_flow
 
 if "OPENAI_API_KEY" not in st.secrets:
     st.error("Please set the OPENAI_API_KEY secret in your secrets.toml file.")
     st.stop()
-    
-sys.path.append("$PWD")
+
+os.environ["PROJECT_DIR"] = os.environ["PWD"]
+sys.path.append(os.environ["PROJECT_DIR"])
 
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 os.environ["TRUBRICS_EMAIL"] = st.secrets["TRUBRICS_EMAIL"]
@@ -30,6 +31,7 @@ st.set_page_config(
         'About': "# AI4EIC RAG System",
     }
 )
+
 st.warning("This project is being continuously developed. Please report any feedback to ai4eic@gmail.com")
 col_l, col1, col2, col_r = st.columns([1, 3, 3, 1])
 
