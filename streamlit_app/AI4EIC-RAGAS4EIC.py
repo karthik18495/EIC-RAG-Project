@@ -6,7 +6,7 @@ if "OPENAI_API_KEY" not in st.secrets:
     st.error("Please set the OPENAI_API_KEY secret in your secrets.toml file.")
     st.stop()
 
-os.environ["PROJECT_DIR"] = os.environ["PWD"]
+os.environ["PROJECT_DIR"] = os.getcwd()
 sys.path.append(os.environ["PROJECT_DIR"])
 
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]

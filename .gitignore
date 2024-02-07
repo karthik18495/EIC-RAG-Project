@@ -10,7 +10,8 @@ __pycache__/
 
 *.streamlit*
 
-*.devcontainer
+*.devcon*
+
 
 # Distribution / packaging
 .Python
