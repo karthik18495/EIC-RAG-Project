@@ -159,7 +159,7 @@ for ques in st.session_state.get("questions", []):
         if (len(ques["content"]) > WORD_LIM):
             st.subheader("Content")
             st.write(ques["content"])
-        st.subheader("Link to trace [🛠️]" + f"({ques["trace_link"]})")
+        st.subheader("Link to trace [🛠️](" + ques["trace_link"] + ")")
         st.header("", divider = "rainbow")
         
 
@@ -176,6 +176,7 @@ with st.container(border = True):
             GPTVersion = st.selectbox("GPT Version", ["4"])
              
     if st.session_state.get("Generate"):
+        st.session_state["Generate"] = False
         llm = ChatOpenAI(model_name=GPTDict[GPTVersion], 
                          temperature=0, 
                          max_tokens=4000
@@ -212,5 +213,4 @@ with st.container(border = True):
                                                "trace_link": st.session_state.run_url
                                                }
                                               )
-            st.session_state["Generate"] = False
             
