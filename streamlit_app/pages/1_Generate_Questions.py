@@ -200,7 +200,9 @@ with st.container(border = True):
                     full_response += (chunks or "")
                     message_placeholder.write(full_response + "▌")
                 st.session_state.DataGen_run_id = cb.traced_runs[0].id
-            message_placeholder.write(full_response)
+                st.session_state.run_url = cb.get_run_url()
+            message_placeholder.write(full_response) 
+            st.markdown("Link to trace [🛠️]" + f"({st.session_state.run_url})")
             st.header("", divider = "rainbow")
             st.session_state.questions.append({"qnum" : f"Gen: {st.session_state.generation_count}, Q: {i}", 
                                                "content" : st.session_state["article_content"],
@@ -209,5 +211,4 @@ with st.container(border = True):
                                                }
                                               )
             st.session_state["Generate"] = False
-            
             
