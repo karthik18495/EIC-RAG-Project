@@ -159,7 +159,7 @@ for ques in st.session_state.get("questions", []):
         if (len(ques["content"]) > WORD_LIM):
             st.subheader("Content")
             st.write(ques["content"])
-        st.subheader("Link to trace [🛠️](" + ques["trace_link"] + ")")
+        st.markdown(r"""<h2 style="text-align: center;">Link to trace [🛠️]""" + ques["trace_link"] + "</h2>")
         st.header("", divider = "rainbow")
         
 
@@ -198,13 +198,19 @@ with st.container(border = True):
                         }
             tags = [f"claims-{n_claims}", st.session_state["article_id"], GPTVersion]
             with callbacks.collect_runs() as cb:
-                for chunks in chain.stream({"prefix" : prefix, "NCLAIMS":n_claims, "CONTEXT": st.session_state.get("article_content")}, {"metadata": metadata, "tags": tags}):
+                for chunks in chain.stream({"prefix" : prefix, "NCLAIMS":n_claims, 
+                                            "CONTEXT": st.session_state.get("article_content")
+                                            }, 
+                                           {"metadata": metadata, 
+                                            "tags": tags
+                                            }
+                                           ):
                     full_response += (chunks or "")
                     message_placeholder.write(full_response + "▌")
                 st.session_state.DataGen_run_id = cb.traced_runs[0].id
                 st.session_state.run_url = client.read_run(st.session_state.DataGen_run_id).url
             message_placeholder.write(full_response) 
-            st.subheader("Link to trace [🛠️]" + f"({st.session_state.run_url})")
+            st.markdown(r"""<h2 style="text-align: center;">Link to trace [🛠️]""" + f"({st.session_state.run_url})" + "</h2>")
             st.header("", divider = "rainbow")
             st.session_state.questions.append({"qnum" : f"Gen: {st.session_state.generation_count}, Q: {i}", 
                                                "content" : st.session_state["article_content"],
