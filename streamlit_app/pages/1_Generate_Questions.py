@@ -4,6 +4,7 @@ from langchain_community.document_loaders import PyPDFLoader
 import streamlit as st
 import numpy as np
 import arxiv, os
+import pandas as pd
 
 from app_utilities import num_tokens_from_prompt, SetHeader
 from langchain import callbacks
@@ -14,31 +15,26 @@ from LangChainUtils.LLMChains import RunQuestionGeneration
 os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_EVAL_PROJECT"]
 os.environ["LANGCHAIN_RUN_NAME"] = "QA Generation"
 
-GPT_CONTEXT_LEN = 27000 # 32k - 4096
-CHAR_PER_TOKEN = 4
-WORD_LIM = GPT_CONTEXT_LEN * CHAR_PER_TOKEN
+def compute_lim(GPT_CONTEXT_LEN:int = 12_000, CHAR_PER_TOKEN:int = 4):
+    return GPT_CONTEXT_LEN * CHAR_PER_TOKEN
+
+
+GPTDict = {"4"  : {"model" : "gpt-4-0125-preview", "context_lim": 128_000, "temperature": 0, "max_tokens": 4096, "WORD_LIM": compute_lim(123_000, 4)},
+           "3.5": {"model": "gpt-3.5-turbo-1106",  "context_lim":  16_385, "temperature": 0, "max_tokens": 4096, "WORD_LIM": compute_lim( 12_000, 4)}, 
+           }
 
 client = Client()
 SetHeader("RAG Generate Questions")
+
 # Some explanations to do 
 
-st.markdown(open("streamlit_app/Resources/Markdowns/QA_Generation.md", "r").read())
+st.header("Using LLM to generate QA bencmarks dataset 🧞")
+with st.expander("Expand to see detailed explanation"):
+    st.markdown(open("streamlit_app/Resources/Markdowns/QA_Generation.md", "r").read())
 
 if not st.session_state.get("user_name"):
     st.error("Please login to your account first to further continue and generate questions.")
     st.stop()
-
-# mode = 0 for user, 1 for annotator, 2 for developer   
-if st.session_state.get("user_mode", -1) > 0:
-    with st.sidebar:
-        st.toggle("Contribute to Evaluation", value = False, key = "contribute_to_eval", help="Toggle this to contribute to evaluation for each response")
-    if st.session_state.contribute_to_eval:
-        with st.container(border = True):
-            st.title("Langsmith details")
-            st.markdown("## PROJECT NAME: " + os.environ["LANGCHAIN_PROJECT"])
-            st.markdown("## USER: " + st.session_state.get("user_name"))
-            st.markdown("## RUN NAME: " + os.environ["LANGCHAIN_RUN_NAME"])
-
 # Start by defining article load as false
 article_keys = ["article_loaded", "article_primary_category", 
                 "article_categories", "article_title", 
@@ -47,13 +43,6 @@ article_keys = ["article_loaded", "article_primary_category",
                 "article_date", "article_num_tokens", "article_pages",
                 "full_content"
                 ]
-
-if "load_article" not in st.session_state:
-    st.session_state.load_article = False
-
-
-articles = open("streamlit_app/Resources/ARXIV_SOURCES.info", "r").readlines()  
-
 def LoadArticle(Load: bool, article_keys: list):
     for key in article_keys:
         st.session_state[key] = None
@@ -61,11 +50,69 @@ def LoadArticle(Load: bool, article_keys: list):
     st.session_state.load_article = Load
     st.session_state.generation_count = 0
 
-st.header("", divider = "rainbow")
+def LoadRandomArticle(df: pd.DataFrame):
+    SUM_WEIGHT = max(df["used_num_times"].sum(), 1.)
+    return np.random.choice(df["arxiv_id"].values, p = 1. - df["used_num_times"] / SUM_WEIGHT)[0]
+
+# mode = 0 for user, 1 for annotator, 2 for developer   
+if st.session_state.get("user_mode", -1) > 0:
+    with st.sidebar:
+        st.toggle("Contribute to Evaluation", value = False, key = "contribute_to_eval", help="Toggle this to contribute to evaluation for each response")
+        if (st.session_state.contribute_to_eval):
+            with st.form("Langsmith details"):
+                datagen_run = st.text_input("RUN NAME", value = os.environ["LANGCHAIN_RUN_NAME"], placeholder =  st.session_state.get("dataset_name", None))
+                dataset_name = st.text_input("DATASET NAME", value = st.session_state.get("dataset_name", None), placeholder =  st.session_state.get("dataset_name", None))
+                submit_dataset = st.form_submit_button("Submit", help = "Submit the dataset name and run name to start generating questions")
+                if (submit_dataset):
+                    os.environ["LANGCHAIN_RUN_NAME"] = datagen_run
+                    st.session_state.dataset_name = dataset_name
+                    LoadArticle(False, article_keys)
+
+if "load_article" not in st.session_state:
+    st.session_state.load_article = False
+
+
+#articles = open("streamlit_app/Resources/ARXIV_SOURCES.info", "r").readlines()
+
+articles = pd.read_csv("streamlit_app/Resources/ARXIV_SOURCES_DETAILED.csv", sep = ",")
+
+st.header("Select GPT Version and load an Article from arxiv database to generate questions", divider = "rainbow")
+col_ll2, col_bb1, col_bb2, col_rr2 = st.columns([1, 2, 2, 1])
+with col_bb1:
+    st.radio("Select a Random Article if needed", 
+             key = "load_random_article", 
+             help = "This generates a random article based on previous usage, it loads an article that has not been used much"
+             )
+with col_bb2:
+    st.selectbox("Select GPT Version", GPTDict.keys(), key = "gpt_version", 
+                 help = "Select the GPT version to generate questions",
+                 index = 1
+                 )
+if (st.session_state.get("load_random_article", False)):
+    st.session_state.arxiv_id = LoadRandomArticle(articles)
+col_aa1, col_aa2 = st.columns([1, 4])
+with col_aa1:
+    cat = st.selectbox("ARXIV primary category", st.session_state.get("arxiv_id", articles["primary_category"].unique().tolist()), 
+                       key = "primary_category",
+                       help = "Select the primary category of the article to load",
+                       index = None
+                       )
+with col_aa2:
+    st.selectbox("ARXIV title", articles[(articles["primary_category"] == cat)]["title"].to_list(),
+                 key = "title",
+                 format_func = lambda x: f"""{x}""",
+                 help = "Select the title of the article to load",
+                 index = None
+                 )
+
+
+
 col_Al, col_A, colAr = st.columns([1, 4, 1])
 with col_A:
-    st.header("Load an Article from arxiv database to generate questions")
-    st.button("Load an article from arxiv..", on_click = LoadArticle, args = [True, article_keys])
+    st.button("Load Article from arxiv....", on_click = LoadArticle, args = [True, article_keys])
+    
+WORD_LIM = GPTDict[st.session_state.get("gpt_version", "3.5")]["WORD_LIM"]
+
 st.header("", divider = "rainbow")
 if st.session_state.load_article:
     with st.status("Loading article...", expanded = True, state = "running") as status:
@@ -142,7 +189,7 @@ if st.session_state.get("article_loaded") and len(st.session_state.get("article_
     with st.expander("Expand to show", expanded = False):
         st.write(st.session_state.get("article_content", ""))
 
-GPTDict = {"3.5": "gpt-3.5-turbo-1106", "4": "gpt-4-0125-preview"}
+
 prefix = open("Templates/QA_Generations/example_01.template").read()
 
 def gen_submit(generate: bool):
@@ -159,7 +206,7 @@ for ques in st.session_state.get("questions", []):
         if (len(ques["content"]) > WORD_LIM):
             st.subheader("Content")
             st.write(ques["content"])
-        st.markdown(r"""<h2 style="text-align: center;">Link to trace [🛠️]""" + ques["trace_link"] + "</h2>")
+        st.subheader("""Link to trace [🛠️](""" + ques["trace_link"] + ")")
         st.header("", divider = "rainbow")
         
 
@@ -173,13 +220,13 @@ with st.container(border = True):
             n_claims = st.number_input("Number of claims to be generated in each question", min_value = 1, max_value = 10)
             st.form_submit_button("Generate", on_click = gen_submit, args = (True,))
         with f_col3:
-            GPTVersion = st.selectbox("GPT Version", ["4"])
+            st.markdown("Selected GPT Version: " + st.session_state.GPTDict["model"])
              
     if st.session_state.get("Generate"):
         st.session_state["Generate"] = False
-        llm = ChatOpenAI(model_name=GPTDict[GPTVersion], 
-                         temperature=0, 
-                         max_tokens=4000
+        llm = ChatOpenAI(model_name=GPTDict[GPTVersion]["model"], 
+                         temperature=GPTDict[GPTVersion]["temperature"], 
+                         max_tokens=GPTDict[GPTVersion]["max_tokens"],
                          )
         chain = RunQuestionGeneration(llm).with_config({"run_name" : os.environ["LANGCHAIN_RUN_NAME"]
                                 }
@@ -210,7 +257,7 @@ with st.container(border = True):
                 st.session_state.DataGen_run_id = cb.traced_runs[0].id
                 st.session_state.run_url = client.read_run(st.session_state.DataGen_run_id).url
             message_placeholder.write(full_response) 
-            st.markdown(r"""<h2 style="text-align: center;">Link to trace [🛠️]""" + f"({st.session_state.run_url})" + "</h2>")
+            st.subheader(f"""Link to trace [🛠️]({st.session_state.run_url})""")
             st.header("", divider = "rainbow")
             st.session_state.questions.append({"qnum" : f"Gen: {st.session_state.generation_count}, Q: {i}", 
                                                "content" : st.session_state["article_content"],
@@ -219,4 +266,4 @@ with st.container(border = True):
                                                "trace_link": st.session_state.run_url
                                                }
                                               )
-            
+        
