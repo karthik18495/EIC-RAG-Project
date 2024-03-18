@@ -3,7 +3,7 @@ from langchain_community.document_loaders import PyPDFLoader
 
 import streamlit as st
 import numpy as np
-import arxiv, os
+import arxiv, os, random
 import pandas as pd
 
 from app_utilities import num_tokens_from_prompt, SetHeader
@@ -12,8 +12,22 @@ from langsmith import Client
 
 from LangChainUtils.LLMChains import RunQuestionGeneration
 
+Summary = """
+        # IDEA OF THIS SCRIPT
+            This script is to help the developer to generate questions for the AI4EIC-RAG project.
+            Check if the user is logged in. If not ask them to login, 
+            If they are logged in make sure if they have the right to access the generate questions. 
+            This is done by checking their level using their log in information
+        ## GENERATING A RANDOM ARTICLE 
+            Ask the user if they want to load a random article from database. Then Select which version of GPT do they want to select.
+            Else, user can select the targetted article as well. 
+            Once selected and clicked load. If random artucle is selected, then generate a random number generator using random.choices (__Thanks to @Neeltje for this elegent solution__)
+        ## GENERATING QUESTIONS
+        """
+
 os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_EVAL_PROJECT"]
 os.environ["LANGCHAIN_RUN_NAME"] = "QA Generation"
+articles = pd.read_csv(st.secrets.SOURCES_DETAILS, sep = ",")
 
 def compute_lim(GPT_CONTEXT_LEN:int = 12_000, CHAR_PER_TOKEN:int = 4):
     return GPT_CONTEXT_LEN * CHAR_PER_TOKEN
@@ -43,81 +57,118 @@ article_keys = ["article_loaded", "article_primary_category",
                 "article_date", "article_num_tokens", "article_pages",
                 "full_content"
                 ]
-def LoadArticle(Load: bool, article_keys: list):
-    for key in article_keys:
-        st.session_state[key] = None
-    st.session_state.questions = []
-    st.session_state.load_article = Load
-    st.session_state.generation_count = 0
+
 
 def LoadRandomArticle(df: pd.DataFrame):
-    SUM_WEIGHT = max(df["used_num_times"].sum(), 1.)
-    return np.random.choice(df["arxiv_id"].values, p = 1. - df["used_num_times"] / SUM_WEIGHT)[0]
+    """_summary_
+    This is a adhoc function. Can be better.
+
+    Args:
+        df (pd.DataFrame): The source details csv dataframe file.
+
+    Returns:
+        str: Choice of arxiv_id selected
+    """
+    return random.choices(df["arxiv_id"].values, weights = df["used_num_times"].values)[0]
+def LoadArticle(LoadRandom: bool, article_keys: list):
+    for key in article_keys:
+        st.session_state[key] = None
+    if st.session_state.get("load_random_article"):
+        st.session_state.article_id = LoadRandomArticle(df = articles)
+    elif st.session_state.get("selected_article"):
+        #print (f"Going to query the article {st.session_state.selected_article}from the database")
+        st.session_state.article_id = articles.query(f'title=="{st.session_state.selected_article}"')["arxiv_id"].values[0]
+        #print (st.session_state.article_id)
+    elif not LoadRandom:
+        pass
+    else:
+        st.error("Please select an article to load")
+        st.stop()
+    st.session_state.questions = []
+    st.session_state.load_article = True
+    st.session_state.generation_count = 0
 
 # mode = 0 for user, 1 for annotator, 2 for developer   
 if st.session_state.get("user_mode", -1) > 0:
     with st.sidebar:
-        st.toggle("Contribute to Evaluation", value = False, key = "contribute_to_eval", help="Toggle this to contribute to evaluation for each response")
+        st.toggle("Contribute to Evaluation", 
+                  value = False, 
+                  key = "contribute_to_eval", 
+                  help = "Toggle this to contribute to evaluation for each response"
+                  )
         if (st.session_state.contribute_to_eval):
             with st.form("Langsmith details"):
                 datagen_run = st.text_input("RUN NAME", value = os.environ["LANGCHAIN_RUN_NAME"], placeholder =  st.session_state.get("dataset_name", None))
-                dataset_name = st.text_input("DATASET NAME", value = st.session_state.get("dataset_name", None), placeholder =  st.session_state.get("dataset_name", None))
+                dataset_name = st.text_input("DATASET NAME", 
+                                             value = st.session_state.get("dataset_name", st.session_state.get("user_name").upper() + "_DATASETS"), 
+                                             placeholder =  st.session_state.get("dataset_name", st.session_state.get("user_name").upper() + "_DATASETS")
+                                             )
                 submit_dataset = st.form_submit_button("Submit", help = "Submit the dataset name and run name to start generating questions")
                 if (submit_dataset):
                     os.environ["LANGCHAIN_RUN_NAME"] = datagen_run
                     st.session_state.dataset_name = dataset_name
-                    LoadArticle(False, article_keys)
+                    LoadArticle(False, article_keys + ["dataset_id"])
+                    datasets = client.list_datasets(dataset_name_contains = dataset_name)
+                    for dataset in datasets:
+                        if dataset.name == dataset_name:
+                            st.session_state.dataset_id = dataset.id
+                            #print (f"Dataset id is {st.session_state.dataset_id}")
+                            break
+                    if not st.session_state.dataset_id:
+                        dataset = client.create_dataset(dataset_name, description = f"Dataset for QA Benchmarks generated by {st.session_state.user_name}")
+                        st.session_state.dataset_id = dataset.id
+                    
 
 if "load_article" not in st.session_state:
     st.session_state.load_article = False
 
-
-#articles = open("streamlit_app/Resources/ARXIV_SOURCES.info", "r").readlines()
-
-articles = pd.read_csv("streamlit_app/Resources/ARXIV_SOURCES_DETAILED.csv", sep = ",")
-
 st.header("Select GPT Version and load an Article from arxiv database to generate questions", divider = "rainbow")
 col_ll2, col_bb1, col_bb2, col_rr2 = st.columns([1, 2, 2, 1])
 with col_bb1:
-    st.radio("Select a Random Article if needed", 
-             key = "load_random_article", 
-             help = "This generates a random article based on previous usage, it loads an article that has not been used much"
-             )
+    st.checkbox("Select a Random Article if needed", 
+                key = "load_random_article", 
+                help = "This generates a random article based on previous usage, it loads an article that has not been used much"
+                )
 with col_bb2:
-    st.selectbox("Select GPT Version", GPTDict.keys(), key = "gpt_version", 
+    st.selectbox("Select GPT Version", GPTDict.keys(), 
+                 key = "gpt_version", 
                  help = "Select the GPT version to generate questions",
                  index = 1
                  )
-if (st.session_state.get("load_random_article", False)):
-    st.session_state.arxiv_id = LoadRandomArticle(articles)
-col_aa1, col_aa2 = st.columns([1, 4])
-with col_aa1:
-    cat = st.selectbox("ARXIV primary category", st.session_state.get("arxiv_id", articles["primary_category"].unique().tolist()), 
-                       key = "primary_category",
-                       help = "Select the primary category of the article to load",
-                       index = None
-                       )
-with col_aa2:
-    st.selectbox("ARXIV title", articles[(articles["primary_category"] == cat)]["title"].to_list(),
-                 key = "title",
-                 format_func = lambda x: f"""{x}""",
-                 help = "Select the title of the article to load",
-                 index = None
-                 )
 
-
+if not st.session_state.get("load_random_article"):
+    col_aa1, col_aa2 = st.columns([1, 4])
+    with col_aa1:
+        cat = st.selectbox("ARXIV primary category", st.session_state.get("arxiv_id", articles["primary_category"].unique().tolist()), 
+                        key = "primary_category",
+                        help = "Select the primary category of the article to load",
+                        index = None
+                        )
+    with col_aa2:
+        st.selectbox("ARXIV title", articles[(articles["primary_category"] == cat)]["title"].to_list(),
+                    key = "selected_article",
+                    format_func = lambda x: f"""{x}""",
+                    help = "Select the title of the article to load",
+                    index = None
+                    )
 
 col_Al, col_A, colAr = st.columns([1, 4, 1])
 with col_A:
-    st.button("Load Article from arxiv....", on_click = LoadArticle, args = [True, article_keys])
+    st.button("Load Article from arxiv....", 
+              on_click = LoadArticle , 
+              args = [True, article_keys], 
+              help = "Load the article from arxiv database", 
+              disabled = not (st.session_state.get("load_random_article") or st.session_state.get("selected_article"))
+              )
     
 WORD_LIM = GPTDict[st.session_state.get("gpt_version", "3.5")]["WORD_LIM"]
 
 st.header("", divider = "rainbow")
 if st.session_state.load_article:
     with st.status("Loading article...", expanded = True, state = "running") as status:
-        st.write("Selecting a random article....")
-        article = np.random.choice(articles).strip("\n")
+        if (st.session_state.get("load_random_article")):
+            st.write("Selecting a random article....")
+        article = st.session_state.get("article_id")
         st.write(f"Searching {article} ID from arxiv.org...")
         try:
             search = arxiv.Search(id_list=[article])
@@ -210,6 +261,23 @@ for ques in st.session_state.get("questions", []):
         st.header("", divider = "rainbow")
         
 
+def add_to_dataset():
+    INPUTS = {"NCLAIMS": int(st.session_state.get("dataset_nclaims")),
+              "ARXIV_ID": st.session_state.get("dataset_arxiv_id"),
+              "QUESTION": st.session_state.get("dataset_questions")
+              }
+    OUTPUTS = {"NCLAIMS": int(st.session_state.get("dataset_nclaims")),
+               "CLAIMS" : eval(st.session_state.get("dataset_claims")),
+               "COMPLETE_RESPONSE": st.session_state.dataset_complete_response,
+               "INDIVIDUAL_RESPONSE": eval(st.session_state.get("dataset_individual_response"))
+               }
+    #print (INPUTS, OUTPUTS)
+    client.create_example(
+        inputs = INPUTS,
+        outputs = OUTPUTS,
+        dataset_id = st.session_state.get("dataset_id")
+        )  
+
 with st.container(border = True):
     st.title("Lets Start Generating Questions")
     with st.form("Generate Question"):
@@ -220,10 +288,11 @@ with st.container(border = True):
             n_claims = st.number_input("Number of claims to be generated in each question", min_value = 1, max_value = 10)
             st.form_submit_button("Generate", on_click = gen_submit, args = (True,))
         with f_col3:
-            st.markdown("Selected GPT Version: " + st.session_state.GPTDict["model"])
+            st.markdown("Selected GPT Version: " + st.session_state.get("gpt_version"))
              
     if st.session_state.get("Generate"):
         st.session_state["Generate"] = False
+        GPTVersion = st.session_state.get("gpt_version")
         llm = ChatOpenAI(model_name=GPTDict[GPTVersion]["model"], 
                          temperature=GPTDict[GPTVersion]["temperature"], 
                          max_tokens=GPTDict[GPTVersion]["max_tokens"],
@@ -257,8 +326,6 @@ with st.container(border = True):
                 st.session_state.DataGen_run_id = cb.traced_runs[0].id
                 st.session_state.run_url = client.read_run(st.session_state.DataGen_run_id).url
             message_placeholder.write(full_response) 
-            st.subheader(f"""Link to trace [🛠️]({st.session_state.run_url})""")
-            st.header("", divider = "rainbow")
             st.session_state.questions.append({"qnum" : f"Gen: {st.session_state.generation_count}, Q: {i}", 
                                                "content" : st.session_state["article_content"],
                                                "question": full_response.split("A:")[0], 
@@ -266,4 +333,32 @@ with st.container(border = True):
                                                "trace_link": st.session_state.run_url
                                                }
                                               )
+            _, tmp_coll,__ = st.columns([1, 2, 1])
+            with tmp_coll:
+                st.subheader(f"""Link to trace [🛠️]({st.session_state.run_url})""")
+            if st.session_state.get("contribute_to_eval") and st.session_state.get("dataset_name"):
+                with st.form(f"Add to DataSet {st.session_state.dataset_name}", border = True):
+                    QAINFO = st.session_state.questions[-1]
+                    QANSWER = QAINFO["answer"].replace(":", "").replace("```", "").strip(",").strip("\n")
+                    NCLAIMS = QANSWER.split("\"n_claims\"")[-1].split(",")[0].replace(" ","")
+                    CLAIMS = QANSWER.split("\"claims\"")[-1].split("],")[0].strip("\n").strip(",") + "]"
+                    COMPLETE_RESPONSE = QANSWER.split("\"complete_response\"")[-1].split("\"answers\"")[0].replace("\"", "").strip("\n").strip(",")
+                    INDIVIDUAL_RESPONSE = QANSWER.split("\"answers\"")[-1].split("]\n}")[0].split("]}")[0] + "]"
+                    #for kt in QANSWER.split("\"answers\""):
+                    #    print (kt)
+                    #    print ("------")
+                    #print (INDIVIDUAL_RESPONSE)
+                    INDIVIDUAL_RESPONSE = eval(INDIVIDUAL_RESPONSE)
+                    st.header("Add Question to DataSet")
+                    st.subheader("INPUT")
+                    st.text_area("QUESTION", value = QAINFO["question"], key = "dataset_questions")
+                    st.text_input("NCLAIMS", value = NCLAIMS, key = "dataset_nclaims")
+                    st.text_input("ARXIV_ID", value = st.session_state["article_id"], key = "dataset_arxiv_id")
+                    st.subheader("OUTPUT")
+                    st.text_area("CLAIMS", value = CLAIMS, key = "dataset_claims")
+                    st.text_area("INDIVIDUAL_RESPONSE", value = str(INDIVIDUAL_RESPONSE), key = "dataset_individual_response")
+                    st.text_area("COMPLETE_RESPONSE", value = COMPLETE_RESPONSE, key = "dataset_complete_response")
+                    
+                    submit = st.form_submit_button("Add to dataset", on_click = add_to_dataset)
+            st.header("", divider = "rainbow")
         
