@@ -33,8 +33,8 @@ def compute_lim(GPT_CONTEXT_LEN:int = 12_000, CHAR_PER_TOKEN:int = 4):
     return GPT_CONTEXT_LEN * CHAR_PER_TOKEN
 
 
-GPTDict = {"4"  : {"model" : "gpt-4-0125-preview", "context_lim": 128_000, "temperature": 0, "max_tokens": 4096, "WORD_LIM": compute_lim(121_000, 4)},
-           "3.5": {"model": "gpt-3.5-turbo-1106",  "context_lim":  16_385, "temperature": 0, "max_tokens": 4096, "WORD_LIM": compute_lim( 11_000, 4)}, 
+GPTDict = {"4"  : {"model" : "gpt-4-0125-preview", "context_lim": 128_000, "temperature": 0, "max_tokens": 4096, "WORD_LIM": compute_lim(120_000, 4)},
+           "3.5": {"model": "gpt-3.5-turbo-1106",  "context_lim":  16_385, "temperature": 0, "max_tokens": 4096, "WORD_LIM": compute_lim( 10_000, 4)}, 
            }
 
 client = Client()
@@ -164,8 +164,8 @@ with col_A:
               help = "Load the article from arxiv database", 
               disabled = not (st.session_state.get("load_random_article") or st.session_state.get("selected_article"))
               )
-    
-WORD_LIM = GPTDict[st.session_state.get("gpt_version", "3.5")]["WORD_LIM"]
+GPTDICT = GPTDict[st.session_state.get("gpt_version", "3.5")]    
+WORD_LIM = GPTDICT["WORD_LIM"]
 
 st.header("", divider = "rainbow")
 if st.session_state.load_article:
@@ -194,16 +194,10 @@ if st.session_state.load_article:
         st.session_state.article_pages = len(set([doc.metadata.get('page') for doc in docs]))
         full_content = "\n".join([doc.page_content for doc in docs])
         if (len(full_content) > WORD_LIM):
-            status.update(label = f"Article {article} is too large to load in memory. Chunking it smaller to fit it.", state = "running", expanded = True)
-            st.warning("Too large article to load in memory. Chunking it smaller to fit it.")
-            start = np.random.randint(0, len(full_content) - WORD_LIM)
-            content = full_content[start:start + WORD_LIM]
-        else:
-            content = full_content
+            st.warning("Too large article to load in memory. Will Chunk it when running the QA Generation.")
         st.session_state["full_content"] = full_content
-        st.session_state["article_content"] = content
         st.write(f"Article {article} successfully loaded in memory. Precounting tokens now...")
-        num_tokens = num_tokens_from_prompt(content, "gpt-3.5-turbo-1106")
+        num_tokens = num_tokens_from_prompt(full_content, "gpt-3.5-turbo-1106")
         st.session_state["article_num_tokens"] = num_tokens
         st.session_state.article_loaded = True
         st.session_state.load_article = False
@@ -238,11 +232,11 @@ with col2:
     st.subheader("Num of Pages and tokens", divider = "rainbow")
     st.markdown(r"__Pages__: " + str(st.session_state.get("article_pages", "")) + r"  &  __Tokens__: " + str(st.session_state.get("article_num_tokens", "")))
 
-if st.session_state.get("article_loaded") and len(st.session_state.get("article_content", [])) < WORD_LIM:
+if st.session_state.get("article_loaded") and len(st.session_state.get("full_content", [-1])) < WORD_LIM:
     article_container = st.container(border = True)
     article_container.subheader("Article Content", divider = "rainbow")
     with st.expander("Expand to show", expanded = False):
-        st.write(st.session_state.get("article_content", ""))
+        st.write(st.session_state.get("full_content", ""))
 
 
 prefix = open("Templates/QA_Generations/example_01.template").read()
@@ -320,9 +314,19 @@ with st.container(border = True):
                                )
         print ("WORD LIMIT: ", WORD_LIM)
         if (len(st.session_state["full_content"]) > WORD_LIM):
-            print ("Full Content is too long, so using a random part of it")
-            _start = np.random.randint(0, len(st.session_state["full_content"]) - WORD_LIM)
-            st.session_state["article_content"] = st.session_state["full_content"][_start:_start + WORD_LIM]
+            with st.status(label = f"Article {st.session_state.article_id} is too large to load in memory.", state = "running", expanded = True) as status:
+                status.update(label = "Chunking it smaller to fit it.", state = "running", expanded = True)
+                _start = np.random.randint(0, len(st.session_state["full_content"]) - WORD_LIM)
+                st.session_state["article_content"] = st.session_state["full_content"][_start:_start + WORD_LIM]
+                status.update(label = "Chunking is done. Calculating the number of tokens for this QA Generation.....", state = "running", expanded = True)
+                num_tokens = num_tokens_from_prompt(st.session_state["article_content"], "gpt-3.5-turbo-1106")
+                if (num_tokens > WORD_LIM/4.):
+                    status.update(label = "Still too large to fit in memory. Shrinking futher.", state = "running", expanded = True)
+                    st.session_state["article_content"] = st.session_state["full_content"][_start:_start + WORD_LIM - (num_tokens - WORD_LIM//4)*4]
+                num_tokens = num_tokens_from_prompt(st.session_state["article_content"], "gpt-3.5-turbo-1106")
+                status.update(label = f"Chunking done. Tokens = {num_tokens}", state = "complete", expanded = False)
+        else:
+            st.session_state["article_content"] = st.session_state["full_content"]
         for i in range(n_questions):
             full_response = ""
             st.header("Question " + str(i+1) + " from " + st.session_state["article_id"] + " at " + st.session_state["article_url"])
