@@ -26,7 +26,7 @@ Summary = """
         """
 
 os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_EVAL_PROJECT"]
-os.environ["LANGCHAIN_RUN_NAME"] = "QA Generation"
+os.environ["LANGCHAIN_RUN_NAME"] = "QA_Generation"
 articles = pd.read_csv(st.secrets.SOURCES_DETAILS, sep = ",")
 
 def compute_lim(GPT_CONTEXT_LEN:int = 12_000, CHAR_PER_TOKEN:int = 4):
@@ -103,8 +103,12 @@ if st.session_state.get("user_mode", -1) > 0:
                                              value = st.session_state.get("dataset_name", st.session_state.get("user_name").upper() + "_DATASETS"), 
                                              placeholder =  st.session_state.get("dataset_name", st.session_state.get("user_name").upper() + "_DATASETS")
                                              )
+                run_eval_name = st.text_input("EVAL PROJECT NAME", 
+                                              value = os.environ.get("LANGCHAIN_PROJECT", "QA-BENCHMARK")
+                                              )
                 submit_dataset = st.form_submit_button("Submit", help = "Submit the dataset name and run name to start generating questions")
                 if (submit_dataset):
+                    os.environ["LANGCHAIN_PROJECT"] = run_eval_name
                     os.environ["LANGCHAIN_RUN_NAME"] = datagen_run
                     st.session_state.dataset_name = dataset_name
                     LoadArticle(False, article_keys + ["dataset_id"])
@@ -272,11 +276,17 @@ def add_to_dataset():
                "COMPLETE_RESPONSE": st.session_state.dataset_complete_response,
                "INDIVIDUAL_RESPONSE": eval(st.session_state.get("dataset_individual_response"))
                }
+    metadata = {"username": st.session_state.user_name,
+                "linked_run": st.session_state.run_url,
+                "n_claims": int(st.session_state.get("dataset_nclaims")),
+                "arxiv_id": st.session_state.get("dataset_arxiv_id")
+                }
     #print (INPUTS, OUTPUTS)
     client.create_example(
         inputs = INPUTS,
         outputs = OUTPUTS,
-        dataset_id = st.session_state.get("dataset_id")
+        dataset_id = st.session_state.get("dataset_id"),
+        metadata = metadata
         )  
     # SINCE ADDED NOW REDUCE THE COUNT 
     df = pd.read_csv(st.secrets.SOURCES_DETAILS, sep = ",")
