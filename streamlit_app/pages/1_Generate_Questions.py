@@ -264,7 +264,8 @@ for ques in st.session_state.get("questions", []):
 def add_to_dataset():
     INPUTS = {"NCLAIMS": int(st.session_state.get("dataset_nclaims")),
               "ARXIV_ID": st.session_state.get("dataset_arxiv_id"),
-              "QUESTION": st.session_state.get("dataset_questions")
+              "QUESTION": st.session_state.get("dataset_questions"),
+              "RUN_TRACE": st.session_state.run_url
               }
     OUTPUTS = {"NCLAIMS": int(st.session_state.get("dataset_nclaims")),
                "CLAIMS" : eval(st.session_state.get("dataset_claims")),
