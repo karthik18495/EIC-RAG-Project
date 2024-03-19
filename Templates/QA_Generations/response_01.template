@@ -6,6 +6,7 @@ Use only the information provided in this document and do not include any additi
 Do not generate questions that ask for the overall topic or focus of the document. The questions should be specific and test understanding of the content.
 Do not generate questions that are personal or about the authors.
 Do not generate questions such as "What is the email of the author?" or "Where was the conference held?" The question should be strictly related to physics.
+The question should start with Q: and answer should start with A:
 The answer must be formatted as a dictionary (`dict`) object in python.
 <content>
 {CONTEXT}

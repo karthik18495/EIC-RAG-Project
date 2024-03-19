@@ -9,9 +9,7 @@ A targeted question with N claims is defined as a question that contains exactly
 **Example response 1:**
 ---
 Q: When and Where will the Electron Ion Collider be constructed?
-
 A: 
-
 ```python
 {
     "n_claims" : 2, 
@@ -36,9 +34,7 @@ A question with 3 claims is shown below:
 
 ---
 Q: What is the dimension of the MAPS pixel layer in ITS3 EIC technology? How many layers of MAPS detector will be in EIC? What is the thickness of the MAPS layer?
-
-A:  
-
+A: 
 ```python
 {
     "n_claims" : 3, 
