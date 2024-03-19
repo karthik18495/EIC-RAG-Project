@@ -33,8 +33,8 @@ def compute_lim(GPT_CONTEXT_LEN:int = 12_000, CHAR_PER_TOKEN:int = 4):
     return GPT_CONTEXT_LEN * CHAR_PER_TOKEN
 
 
-GPTDict = {"4"  : {"model" : "gpt-4-0125-preview", "context_lim": 128_000, "temperature": 0, "max_tokens": 4096, "WORD_LIM": compute_lim(123_000, 4)},
-           "3.5": {"model": "gpt-3.5-turbo-1106",  "context_lim":  16_385, "temperature": 0, "max_tokens": 4096, "WORD_LIM": compute_lim( 12_000, 4)}, 
+GPTDict = {"4"  : {"model" : "gpt-4-0125-preview", "context_lim": 128_000, "temperature": 0, "max_tokens": 4096, "WORD_LIM": compute_lim(121_000, 4)},
+           "3.5": {"model": "gpt-3.5-turbo-1106",  "context_lim":  16_385, "temperature": 0, "max_tokens": 4096, "WORD_LIM": compute_lim( 11_000, 4)}, 
            }
 
 client = Client()
