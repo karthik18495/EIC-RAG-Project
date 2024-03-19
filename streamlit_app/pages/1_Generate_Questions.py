@@ -318,6 +318,7 @@ with st.container(border = True):
         chain = RunQuestionGeneration(llm).with_config({"run_name" : os.environ["LANGCHAIN_RUN_NAME"]
                                 }
                                )
+        print ("WORD LIMIT: ", WORD_LIM)
         if (len(st.session_state["full_content"]) > WORD_LIM):
             print ("Full Content is too long, so using a random part of it")
             _start = np.random.randint(0, len(st.session_state["full_content"]) - WORD_LIM)
