@@ -3,6 +3,7 @@
 Given the text within the tags <content> and </content>, generate 1 targeted question that contains exactly {NCLAIMS} claims along with its answer.
 Ensure that your question and answer are clearly labeled and strictly to the point.
 Use only the information provided in this document and do not include any additional details.
+Do not generate questions as if the questions explicitly mention the document. Make it strictly sound like a question asked during an exam. Do not ask like "What is the focus of the work presented?""
 Do not generate questions that are personal or about the authors.
 Do not generate questions such as "What is the email of the author?" or "Where was the conference held?" The question should be strictly related to physics.
 The answer must be formatted as a dictionary (dict) object in python.
