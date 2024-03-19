@@ -4,7 +4,7 @@ You will be asked to generate questions along with clear answers given the conte
 
 Here is an explanation to help you better understand the task:
 
-A targeted question with N claims is defined as a question that contains exactly N claims to answer. Note that all the claims are within the question. 
+A targeted question with N claims is defined as a question that contains exactly N claims to answer. Note that all the claims are within the question and no claims are outside the question.
 
 For instance, an example of a targeted question with 2 claims is as follows:
 
