@@ -6,6 +6,8 @@ Here is an explanation to help you better understand the task:
 
 A targeted question with N claims is defined as a question that contains exactly N claims to answer. Note that all the claims are within the question and no claims are outside the question.
 
+Strictly dont add new questions in the claims. Please follow the response very carefully.
+
 For instance, an example of a targeted question with 2 claims is as follows:
 
 **Example response 1:**
