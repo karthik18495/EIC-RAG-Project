@@ -7,7 +7,7 @@ Here is an explanation to help you better understand the task:
 A targeted question with N claims is defined as a question that contains exactly N claims to answer. For instance, an example of a targeted question with 2 claims is as follows:
 
 **Example response 1:**
-
+---
 Q: When and Where will the Electron Ion Collider be constructed?
 
 A: 
@@ -28,13 +28,13 @@ A:
     ]
 }
 ```
-
 ---
 
 A question with 3 claims is shown below:
 
 **Example response 2:**
 
+---
 Q: What is the dimension of the MAPS pixel layer in ITS3 EIC technology? How many layers of MAPS detector will be in EIC? What is the thickness of the MAPS layer?
 
 A:  
@@ -58,5 +58,4 @@ A:
     ]
 }
 ```
-
 ---
