@@ -118,7 +118,7 @@ pexpect==4.8.0
 pickleshare==0.7.5
 Pillow==10.1.0
 pinecone-client==3.0.2
-pip==23.3.2
+pip==24.0
 platformdirs==4.1.0
 plotly==5.18.0
 posthog==3.3.2
