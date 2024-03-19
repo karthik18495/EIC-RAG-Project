@@ -356,7 +356,7 @@ with st.container(border = True):
                     INDIVIDUAL_RESPONSE = eval(INDIVIDUAL_RESPONSE)
                     st.header("Add Question to DataSet")
                     st.subheader("INPUT")
-                    st.text_area("QUESTION", value = QAINFO["question"], key = "dataset_questions")
+                    st.text_area("QUESTION", value = QAINFO["question"].split("Q:")[-1].strip("\n"), key = "dataset_questions")
                     st.text_input("NCLAIMS", value = NCLAIMS, key = "dataset_nclaims")
                     st.text_input("ARXIV_ID", value = st.session_state["article_id"], key = "dataset_arxiv_id")
                     st.subheader("OUTPUT")
