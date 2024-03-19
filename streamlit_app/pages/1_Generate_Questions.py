@@ -145,7 +145,7 @@ if not st.session_state.get("load_random_article"):
                         index = None
                         )
     with col_aa2:
-        st.selectbox("ARXIV title", articles[(articles["primary_category"] == cat)]["title"].to_list(),
+        st.selectbox("ARXIV title", sorted(articles[(articles["primary_category"] == cat)]["title"].to_list(), key = lambda x: x.lower()),
                     key = "selected_article",
                     format_func = lambda x: f"""{x}""",
                     help = "Select the title of the article to load",
