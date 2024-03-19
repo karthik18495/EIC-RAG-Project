@@ -269,7 +269,7 @@ def add_to_dataset():
     INPUTS = {"NCLAIMS": int(st.session_state.get("dataset_nclaims")),
               "ARXIV_ID": st.session_state.get("dataset_arxiv_id"),
               "QUESTION": st.session_state.get("dataset_questions"),
-              "RUN_TRACE": st.session_state.run_url
+              "RUN_TRACE": st.session_state.share_run_url
               }
     OUTPUTS = {"NCLAIMS": int(st.session_state.get("dataset_nclaims")),
                "CLAIMS" : eval(st.session_state.get("dataset_claims")),
@@ -277,7 +277,8 @@ def add_to_dataset():
                "INDIVIDUAL_RESPONSE": eval(st.session_state.get("dataset_individual_response"))
                }
     metadata = {"username": st.session_state.user_name,
-                "linked_run": st.session_state.run_url,
+                "linked_run": st.session_state.share_run_url,
+                "private_link": st.session_state.run_url,
                 "n_claims": int(st.session_state.get("dataset_nclaims")),
                 "arxiv_id": st.session_state.get("dataset_arxiv_id")
                 }
@@ -289,10 +290,10 @@ def add_to_dataset():
         metadata = metadata
         )  
     # SINCE ADDED NOW REDUCE THE COUNT 
-    df = pd.read_csv(st.secrets.SOURCES_DETAILS, sep = ",")
-    df[df["arxiv_id"] == st.session_state.get("dataset_arxiv_id")]["used_num_times"] -= 1
-    df["used_num_times"].mask(df['used_num_times'] < 0, 0, inplace = True)
-    df.to_csv(st.secrets.SOURCES_DETAILS, sep = ",", index = False)
+    #df = pd.read_csv(st.secrets.SOURCES_DETAILS, sep = ",")
+    #df[df["arxiv_id"] == st.session_state.get("dataset_arxiv_id")]["used_num_times"] -= 1
+    #df["used_num_times"].mask(df['used_num_times'] < 0, 0, inplace = True)
+    #df.to_csv(st.secrets.SOURCES_DETAILS, sep = ",", index = False)
 
 with st.container(border = True):
     st.title("Lets Start Generating Questions")
@@ -341,12 +342,14 @@ with st.container(border = True):
                     message_placeholder.write(full_response + "▌")
                 st.session_state.DataGen_run_id = cb.traced_runs[0].id
                 st.session_state.run_url = client.read_run(st.session_state.DataGen_run_id).url
+                st.session_state.share_run_url = client.share_run(st.session_state.DataGen_run_id)
             message_placeholder.write(full_response) 
             st.session_state.questions.append({"qnum" : f"Gen: {st.session_state.generation_count}, Q: {i}", 
                                                "content" : st.session_state["article_content"],
                                                "question": full_response.split("A:")[0], 
                                                "answer": full_response.split("A:")[-1],
-                                               "trace_link": st.session_state.run_url
+                                               "trace_link": st.session_state.run_url,
+                                               "share_link": st.session_state.share_run_url
                                                }
                                               )
             _, tmp_coll,__ = st.columns([1, 2, 1])
