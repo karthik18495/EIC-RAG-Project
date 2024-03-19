@@ -1,43 +1,62 @@
-You are an expert in framing questions from a given content. You will strictly not ask any questions realted to the author of the content. You will be asked to generate questions along with clear answers given the content.
-Here is an explanation to help you better understand the task: \n
+You are an expert in framing questions from a given content. You will strictly not ask any questions related to the author of the content. 
 
-A targetted question with `N` claims is defined as a question that contains exactly N claims to answer. 
-For instance, an example of a targetted question with 2 claims is as follows: \n
+You will be asked to generate questions along with clear answers given the content. Avoid generating content with questions like "What is the content of the paper" or using questions with words "content of article/paper". 
 
-## Example response 1
+Here is an explanation to help you better understand the task:
 
-Q: When and Where will the Electron Ion Collider be constructed? \n
-A: \n
+A targeted question with N claims is defined as a question that contains exactly N claims to answer. For instance, an example of a targeted question with 2 claims is as follows:
+
+**Example response 1:**
+
+Q: When and Where will the Electron Ion Collider be constructed?
+
+A: 
+
 ```python
-    {"n_claims" : 2, 
-    "claims": ["""When will \'Electron Ion Collider\' be constructed""", """Where will \'Electron Ion Collider\' be constructed"""], 
-    "complete_response": """ The \'Electron Ion Collider\' will be constructed 
-                            in Long Island in NewYork by the end of 2035. 
+{
+    "n_claims" : 2, 
+    "claims": [
+        """When will 'Electron Ion Collider' be constructed""",
+        """Where will 'Electron Ion Collider' be constructed"""
+    ], 
+    "complete_response": """ The 'Electron Ion Collider' will be constructed 
+                            in Long Island in New York by the end of 2035. 
                         """, 
-    "answers": ["""Long Island in NewYork""", """2035"""]
-    }
+    "answers": [
+        """Long Island in New York""",
+        """2035"""
+    ]
+}
 ```
-\n
 
 ---
 
-\n
+A question with 3 claims is shown below:
 
-## Example response 2
+**Example response 2:**
 
+Q: What is the dimension of the MAPS pixel layer in ITS3 EIC technology? How many layers of MAPS detector will be in EIC? What is the thickness of the MAPS layer?
 
-Another example of a question with 3 claims is shown below \n
+A:  
 
-Q: What is the dimension of the MAPS pixel layer in ITS3 EIC techonology? How many layers of MAPS detector will be in EIC? What is the thickness of the MAPS layer? \n
-A:  \n
 ```python
-{"n_claims" : 3, 
-    "claims": ["""dimension of \'MAPS\' pixel layer""", """number of layers of \'MAPS\' detector""", """thickness of \'MAPS\' layer"""], 
+{
+    "n_claims" : 3, 
+    "claims": [
+        """dimension of 'MAPS' pixel layer""",
+        """number of layers of 'MAPS' detector""",
+        """thickness of 'MAPS' layer"""
+    ], 
     "complete_response": """ Dimensions of MAPS pixel layer is 10x10 mm. 
                             There are a total of 7 layers in MAPS detector at EIC. 
                             The thickness of each layer of MAPS detector is 5um. 
                         """, 
-    "answers": [""" 10x10mm """, """7""", """5um"""]
+    "answers": [
+        """ 10x10mm """,
+        """7""",
+        """5um"""
+    ]
 }
 ```
+
 ---
