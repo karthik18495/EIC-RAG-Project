@@ -347,7 +347,7 @@ with st.container(border = True):
                     QANSWER = QAINFO["answer"].replace(":", "").replace("```", "").strip(",").strip("\n")
                     NCLAIMS = QANSWER.split("\"n_claims\"")[-1].split(",")[0].replace(" ","")
                     CLAIMS = QANSWER.split("\"claims\"")[-1].split("],")[0].strip("\n").strip(",") + "]"
-                    COMPLETE_RESPONSE = QANSWER.split("\"complete_response\"")[-1].split("\"answers\"")[0].replace("\"", "").strip("\n").strip(",")
+                    COMPLETE_RESPONSE = QANSWER.split("\"complete_response\"")[-1].split("\"answers\"")[0].replace("\"", "").strip(",").strip("\n")
                     INDIVIDUAL_RESPONSE = QANSWER.split("\"answers\"")[-1].split("]\n}")[0].split("]}")[0] + "]"
                     #for kt in QANSWER.split("\"answers\""):
                     #    print (kt)
