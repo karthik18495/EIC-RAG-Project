@@ -70,27 +70,47 @@ DBProp = {"LANCE" : {"vector_config" : {"db_name" : st.secrets["LANCEDB_DIR"],
 if "retriever_init" not in st.session_state:
     retriever = GetRetriever("PINECONE", DBProp["PINECONE"]["vector_config"], DBProp["PINECONE"]["search_config"])
 
+@st.cache_data(persist = True)
+def GetRunList(name):
+    runInfo = []
+    run_list = client.list_runs(project_name = name, 
+                                start_time = datetime.now() - timedelta(days = 7),
+                                execution_order = 1
+                                )
+    for runs in run_list:
+        if (client.run_is_shared(runs.id)):
+            runInfo.append({"runID": runs.id, 
+                            "runName" : runs.name, 
+                            "runLink" : client.read_run_shared_link(runs.id)
+                            }
+                           )
+    return runInfo
 
+def OpenHistoryPage(run_id):
+    st.session_state["selected_run_id"] = run_id
+    st.switch_page("pages/4_View_History.py")
+ 
 with st.sidebar:
     if (st.session_state.get("user_name")):
         with st.container():
             st.info("Select VecDB and Properties")
             db_type = st.selectbox("Vector DB", ["PINECONE"], key = "db_type")
             similiarty_score = st.selectbox("Retrieval Metric", DBProp[db_type]["available_metrics"], key = "similiarty_score")
-            max_k = st.select_slider("Max K", options = [10, 20, 30, 40, 50, 100, 150], value = 100, key = "max_k")
+            max_k = st.select_slider("Max K", options = [3, 5, 10, 20, 30, 40, 50, 100, 120], value = 10, key = "max_k")
             if st.button("Select Vector DB"):
                 DBProp[db_type]["search_config"]["search_kwargs"]["k"] = max_k
                 DBProp[db_type]["search_config"]["metric"] = SimilarityDict[similiarty_score]
                 retriever = GetRetriever(db_type, DBProp[db_type]["vector_config"], DBProp[db_type]["search_config"])
                 st.session_state["retriever_init"] = True
-        with st.container():
-            st.info("Previous QA Chats")
-            run_list = client.list_runs(project_name = f"RAG-CHAT-{st.session_state.user_name}",
-                                        start_time = datetime.now() - timedelta(days = 7),
-                                        execution_order = 1
-                                        )
+        with st.container(border = True):
+            st.header("Previous QA Chats")
+            run_list = GetRunList(f"RAG-CHAT-{st.session_state.user_name}")
             for runs in run_list:
-                st.write(runs.name)
+                #st.button(runs["runName"], key = str(runs["runID"]), on_click = OpenHistoryPage, args = (runs["runID"],),
+                #              help = f"Click to open the chat history of " + runs["runName"] + " and you can find more information in langsmith here: " + runs["runLink"]
+                #              )
+                st.link_button(label = runs["runName"], url = runs["runLink"], help = f"Click to find more information in langsmith here: " + runs["runLink"]
+                               )
             
 
 if "retriever_init" in st.session_state:
