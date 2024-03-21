@@ -35,6 +35,8 @@ if st.secrets.get("LANGCHAIN_API_KEY"):
 @st.cache_resource
 def GetRunList(name):
     runs = {}
+    if not client.has_project(name):
+        return None
     run_list = client.list_runs(project_name = name, 
                                 start_time = datetime.now() - timedelta(days = 7),
                                 execution_order = 1
@@ -49,6 +51,10 @@ def GetRunList(name):
 
 client = Client()
 run_list = GetRunList(f"RAG-CHAT-{st.session_state.user_name}")
+
+if not run_list:
+    st.warning("No QA Chat logs found")
+    st.stop()
 
 selected_run_id = st.selectbox("Select the QA Chat",
                             [k for k in run_list.keys()],

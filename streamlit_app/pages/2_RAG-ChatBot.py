@@ -61,7 +61,7 @@ DBProp = {"LANCE" : {"vector_config" : {"db_name" : st.secrets["LANCEDB_DIR"],
                                             "embedding_function" : embeddings
                                             },
                         "search_config" : {"metric" : "similarity", 
-                                           "search_kwargs" : {"k" : 100}
+                                           "search_kwargs" : {"k" : 5}
                                            },
                         "available_metrics" : ["Cosine similarity", "MMR"]
                         },
@@ -73,6 +73,8 @@ if "retriever_init" not in st.session_state:
 @st.cache_data(persist = True)
 def GetRunList(name):
     runInfo = []
+    if not client.has_project(name):
+        return runInfo
     run_list = client.list_runs(project_name = name, 
                                 start_time = datetime.now() - timedelta(days = 7),
                                 execution_order = 1
