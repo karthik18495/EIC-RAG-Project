@@ -72,7 +72,7 @@ def GeneralChain(llm):
         ) | llm | {"answer" : StrOutputParser()}
     )
     return general_chain
-def RunChatBot(llm, retriever):
+def RunChatBot(llm, retriever, template_dir = None):
     def format_docs(docs):
         unique_arxiv = list(set(doc.metadata['arxiv_id'] for doc in docs))
         mkdown = """# Retrieved documents \n"""
@@ -84,8 +84,10 @@ def RunChatBot(llm, retriever):
                     mkdown += """\t*\t""" + doc.page_content.strip("\n") + " \n"
         return mkdown
     
-    
-    response = open("Templates/reponse_01.template", "r").read()
+    if template_dir:
+        response = open(f"{template_dir}/reponse_01.template", "r").read()
+    else:
+        response = open("Templates/reponse_01.template", "r").read()
     response_rewrite = """\
     Follow the instructions very very strictly. Do not add anything else in the response. Do not hallucinate nor make up answers.
     - The content below within the tags <MARKDOWN_RESPONSE> and </MARKDOWN_RESPONSE> is presented within a `st.markdown` container in a streamlit chat window. 
