@@ -1,14 +1,20 @@
 import streamlit as st
 import os, random
+from datetime import datetime, timedelta
 from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
-from langchain_community.callbacks import TrubricsCallbackHandler
-from langchain_core.output_parsers import StrOutputParser
-from langchain.prompts import PromptTemplate
-from langchain_core.runnables import RunnableBranch
+#from langchain_community.callbacks import TrubricsCallbackHandler
+#from langchain_core.output_parsers import StrOutputParser
+#from langchain.prompts import PromptTemplate
+#from langchain_core.runnables import RunnableBranch
 from app_utilities import *
+from LangChainUtils.LLMChains import *
+from langchain import callbacks
+from langsmith import Client
+from langchain_core.tracers.context import tracing_v2_enabled
+from langchain.callbacks.tracers import LangChainTracer
 
-
+client = Client()
 SetHeader("AI4EIC-RAG ChatBot")
 
 # Include some explanations
@@ -21,10 +27,10 @@ os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 os.environ["TRUBRICS_EMAIL"] = st.secrets["TRUBRICS_EMAIL"]
 os.environ["TRUBRICS_PASSWORD"] = st.secrets["TRUBRICS_PASSWORD"]
 
+
 if st.secrets.get("LANGCHAIN_API_KEY"):
     os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
-    os.environ["LANGCHAIN_TRACING_V2"] = st.secrets["LANGCHAIN_TRACING_V2"]
-    os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
+    os.environ["LANGCHAIN_TRACING_V2"] = "false"
     os.environ["LANGCHAIN_ENDPOINT"] = st.secrets["LANGCHAIN_ENDPOINT"]
 # Creating OpenAIEmbedding()
 
@@ -61,40 +67,41 @@ DBProp = {"LANCE" : {"vector_config" : {"db_name" : st.secrets["LANCEDB_DIR"],
                         },
           }
 # Creating retriever
-
-retriever = GetRetriever("PINECONE", DBProp["PINECONE"]["vector_config"], DBProp["PINECONE"]["search_config"])
+if "retriever_init" not in st.session_state:
+    retriever = GetRetriever("PINECONE", DBProp["PINECONE"]["vector_config"], DBProp["PINECONE"]["search_config"])
 
 
 with st.sidebar:
     if (st.session_state.get("user_name")):
         with st.container():
             st.info("Select VecDB and Properties")
-            db_type = st.selectbox("Vector DB", ["PINECONE"])
-            similiarty_score = st.selectbox("Retrieval Metric", DBProp[db_type]["available_metrics"])
-            max_k = st.select_slider("Max K", options = [10, 20, 30, 40, 50, 100, 150], value = 100)
+            db_type = st.selectbox("Vector DB", ["PINECONE"], key = "db_type")
+            similiarty_score = st.selectbox("Retrieval Metric", DBProp[db_type]["available_metrics"], key = "similiarty_score")
+            max_k = st.select_slider("Max K", options = [10, 20, 30, 40, 50, 100, 150], value = 100, key = "max_k")
             if st.button("Select Vector DB"):
                 DBProp[db_type]["search_config"]["search_kwargs"]["k"] = max_k
                 DBProp[db_type]["search_config"]["metric"] = SimilarityDict[similiarty_score]
                 retriever = GetRetriever(db_type, DBProp[db_type]["vector_config"], DBProp[db_type]["search_config"])
+                st.session_state["retriever_init"] = True
+        with st.container():
+            st.info("Previous QA Chats")
+            run_list = client.list_runs(project_name = f"RAG-CHAT-{st.session_state.user_name}",
+                                        start_time = datetime.now() - timedelta(days = 7),
+                                        execution_order = 1
+                                        )
+            for runs in run_list:
+                st.write(runs.name)
+            
 
-if retriever == None:
-    st.stop()
+if "retriever_init" in st.session_state:
+    db_type = st.session_state["db_type"]
+    similiarty_score = st.session_state["similiarty_score"]
+    max_k = st.session_state["max_k"]
+    DBProp[db_type]["search_config"]["search_kwargs"]["k"] = max_k
+    DBProp[db_type]["search_config"]["metric"] = SimilarityDict[similiarty_score]
+    retriever = GetRetriever(db_type, DBProp[db_type]["vector_config"], DBProp[db_type]["search_config"])
 
-from langchain.schema import StrOutputParser
-from langchain.schema.runnable import RunnablePassthrough
-
-
-def format_docs(docs):
-    unique_arxiv = list(set(doc.metadata['arxiv_id'] for doc in docs))
-    mkdown = """# Retrieved documents \n"""
-    for idx, u_ar in enumerate(unique_arxiv):
-        mkdown += f"""{idx + 1}. <ARXIV_ID> {u_ar} <ARXIV_ID/> \n
-        """
-        for i, doc in enumerate(docs):
-            if doc.metadata['arxiv_id'] == u_ar:
-                mkdown += """  *\t""" + doc.page_content.strip("\n") + " \n"
-    return mkdown
-
+sss = """
 llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0, 
                  callbacks=[
                      TrubricsCallbackHandler(
@@ -110,84 +117,10 @@ llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0,
                                              )
                      ], 
                  max_tokens=4096)
-decide_response = open("Templates/Decide_Prompts/decide_prompt_00.template", "r").read()
-decide_prompt = PromptTemplate.from_template(decide_response)
-decide_chain = decide_prompt | llm | StrOutputParser()
-
-response = open("Templates/reponse_01.template", "r").read()
-response_rewrite = """\
-Follow the instructions very very strictly. Do not add anything else in the response. Do not hallucinate nor make up answers.
-- The content below within the tags <MARKDOWN_RESPONSE> and </MARKDOWN_RESPONSE> is presented within a `st.markdown` container in a streamlit chat window. 
-- It may have some syntax errors and improperly arranged citations. 
-- Strictly do no modify the reference URL nor its text.
-- Identify unique reference URL links from the context below and cite them in the form of superscripts.  
-- The new citations should be numerical and start from one. There has to be atleast one citation in the response.
-- Make sure to only use github flavoured markdown syntax for citations. The superscripts should not be in html tags.
-- Check for GitHub flavoured Markdown syntax and Importantly correct the syntax to be compatible with GitHub flavoured Markdown and specifically the superscripts, and arrange the new citations to be numerical starting from one.
-- The content may have latex commands as well. Edit them to make it compatible within Github flavoured markdown by adding $ before and after the latex command.
-- Make sure the citations are superscripted and has to be displayed properly when presented in a chat window. 
-- Do not include the <MARKDOWN_RESPONSE> and <MARKDOWN_RESPONSE/> tags in your answer.
-- Strictly do no modify the reference URL nor its text. Strictly have only Footnotes with reference links in style of GithubFlavoured markdown -
-- Do not create any additional list of links other than Footnotes in your answer.
-<MARKDOWN_RESPONSE>
-{markdown_response}
-<MARKDOWN_RESPONSE/>
-"""
-rag_prompt_custom = PromptTemplate.from_template(response)
-rag_prompt_rewrite = PromptTemplate.from_template(response_rewrite)
-
-
-from operator import itemgetter
-
-from langchain.schema.runnable import RunnableMap
-
-rag_chain_from_docs = (
-    {
-        "context": lambda input: format_docs(input["documents"]),
-        "question": itemgetter("question"),
-    }
-    | rag_prompt_custom
-    | llm
-    | {"markdown_response" : StrOutputParser()} | rag_prompt_rewrite | llm | StrOutputParser()
-)
-
-rag_chain_with_source = RunnableMap(
-    {"documents": retriever, "question": RunnablePassthrough()}
-) | {
-    "answer": rag_chain_from_docs,
-}
-
-creative_chain = (
-    PromptTemplate.from_template(
-        """
-        You are an expert in answering questions about Hadronic physics and the upcoming Electron Ion Collider (EIC).
-        But remember you do not have upto date information about the project nor you track its updates.
-        You will not answer any question that is not related to the Electron Ion Collider (EIC) or Hadronic physics.
-        You will politely decline answering about any other topic. However, to lighten the mood, you will respond with a joke or a quote.
-        You are an expert in responding to a question in a professional fashion.
-        Starting by greeting and thanking for the question. 
-        Answer the question in a very comprehensive way with important numbers if relevant.
-        Respond to the question in a fun, calm and professional fashion. 
-        Make sure to write a comprehensive answer. 
-        End the response with a funny joke or a quote related to the answer. Below is the question you need to respond to.
-Question: {question}
-"""
-    )
-    | llm | {"answer" : StrOutputParser()}
-)
-
-general_chain = (
-    PromptTemplate.from_template(
-        """
-You are a familiar with the Electron Ion Collider (EIC) and its working. However you are no expert about EIC physics nor have upto date information on it
-Respond to the question by starting with saying, you are not sure of the answer but will try to answer at your best.
-Answer the question in a very comprehensive way.
-<question>
-{question}
-</question>
-"""
-    ) | llm | {"answer" : StrOutputParser()}
-)
+                 """
+llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0,
+                 max_tokens = 4096
+                 )
 
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-3.5-turbo"
@@ -198,30 +131,113 @@ if "messages" not in st.session_state:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+        _cola, _colb = st.columns([1, 1])
+        with _cola:
+            if message.get("trace_link"):
+                st.subheader(f"[View the trace 🛠️]({message['trace_link']})")
+        with _colb:
+            if message.get("feedback"):
+                st.subheader("Thanks for the feedback 📝")
 
-if prompt := st.chat_input("What is up?"):
+def submit_feedback():
+    client.create_feedback(run_id = st.session_state.run_id, 
+                           key = "output_render",  
+                           score = 1 if fdbk_output_render == "Yes" else 0,
+                           created_at = datetime.now(),
+                           created_by = st.session_state.user_name
+                           )
+    client.create_feedback(run_id = st.session_state.run_id, 
+                           key = "output_quality", 
+                           score = fdbk_output_quality,
+                           created_at = datetime.now(),
+                           created_by = st.session_state.user_name,
+                           correction = {"COMPLETE_RESPONSE": st.session_state.get("feedback_expected_response", "")},
+                           source_info = {"arxiv_id": st.session_state.get("feedback_source_info", "")}
+                           )
+
+if "user_avatar" not in st.session_state:
+    st.session_state["user_avatar"] = random.choice(["😊", "😉", "🤗"])
+if "ai_avatar" not in st.session_state:
+    st.session_state["ai_avatar"] = random.choice(["🐉", "🐙", "🍄"])
+
+if prompt := st.chat_input("What is up? Ask anything about the Electron Ion Collider (EIC)"):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar = st.session_state["user_avatar"]):
         st.markdown(prompt)
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar = st.session_state["ai_avatar"]):
         full_response = ""
         allchunks = None
         with st.spinner("Hmmmm deciding if I need to use Knowledge bank for this query..."):
-            outdecide = decide_chain.invoke({"question":prompt})
-        if "more info" in outdecide.lower():
-            st.info("Gathering info from Knowledge Bank for this query...")
-            allchunks = rag_chain_with_source.stream(prompt)
-        elif "enough info" in outdecide.lower():
-            st.warning("I am going to answer this question with my knowledge.")
-            allchunks = creative_chain.stream({"question" : prompt})
-        else:
-            st.error("I am not sure if I can answer this question. I will try to answer it with my knowledge.")
-            allchunks = general_chain.stream({"question": prompt})
+            outdecide = DecideChain(llm).invoke({"question": prompt})
+        infocontainer = st.empty()
         message_placeholder = st.empty()
-        for chunk in allchunks:
-            full_response += (chunk.get("answer") or "")
-            message_placeholder.markdown(full_response + "▌")
-        message_placeholder.markdown(full_response)
-            #with st.status("Its Feedback time"):
-            #    st.
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+        trace_link = st.empty()
+        feedback_container = st.empty()
+        if "more info" in outdecide.lower():
+            infocontainer.info("Gathering info from Knowledge Bank for this query...")
+            run_name = llm.invoke(f"""
+                                  Rewrite the question below such that I can name the the question in a tab. 
+                                  It has to be without any new lines. Make it no more than 2 words.
+                                  {prompt}
+                                  """).content
+            trace_metadata = {"DBType": st.session_state.db_type, 
+                              "similarity_score": st.session_state.similiarty_score, 
+                              "max_k": st.session_state.max_k
+                              }
+            project_name = f"RAG-CHAT-{st.session_state.user_name}"
+            tracer = LangChainTracer(project_name = project_name)
+            RUNCHAIN = RunChatBot(llm, retriever
+                                  ).with_config({"callbacks": [tracer],
+                                                 "run_name": run_name, 
+                                                 "metadata": trace_metadata
+                                                 }
+                                                )
+            with tracing_v2_enabled(project_name) as cb:
+                with callbacks.collect_runs() as ccb:
+                    for chunk in RUNCHAIN.stream(prompt):
+                        full_response += (chunk.get("answer") or "")
+                        message_placeholder.markdown(full_response + "▌")
+                    st.session_state.run_id = ccb.traced_runs[0].id
+                    st.session_state.share_run_url = client.share_run(st.session_state.run_id)
+        elif "enough info" in outdecide.lower():
+            infocontainer.warning("I am going to answer this question with my knowledge.")
+            for chunk in CreativeChain(llm).stream({"question" : prompt}):
+                full_response += (chunk.get("answer") or "")
+                message_placeholder.markdown(full_response + "▌")
+        else:
+            infocontainer.error("I am not sure if I can answer this question. I will try to answer it with my knowledge.")
+            for chunk in GeneralChain(llm).stream({"question" : prompt}):
+                full_response += (chunk.get("answer") or "")
+                message_placeholder.markdown(full_response + "▌")
+        message_placeholder.markdown(full_response + "▌")
+        trace_link.subheader(f"[View the trace 🛠️]({st.session_state.share_run_url})")
+    with feedback_container.container(border = True):
+        with st.form("Feedback for the generation"):
+            _colf1, _colf2 = st.columns([1, 1])
+            with _colf1:
+                fdbk_output_render = st.selectbox("Has the output been displayed properly?", 
+                                                ["Yes", "No"], index = None,
+                                                key = "feedback_output_render"
+                                                )
+            with _colf2:
+                fdbk_output_quality = st.number_input("Rate the quality of the output, Min = 0, Max = 5", 
+                                                    min_value = 0, max_value = 5, 
+                                                    key = "feedback_output_quality"
+                                                    )
+            fdbk_expected_response = st.text_area("What was your expected response?", value = "",
+                                                  key = "feedback_expected_response",
+                                                  placeholder = "What is an ideal response for this query?",
+                                                  help = "What is an ideal response for this query?"
+                                                  )
+            fdbk_source_info = st.text_input("What was the source of the question?", value = "",
+                                             key = "feedback_source_info",
+                                             placeholder = "Where did you get this query from, ideally this is the arxiv_id that is used for testing purpose?",
+                                             help = "Where did you get this query from?"
+                                             )
+            submit = st.form_submit_button("Submit Feedback", on_click = submit_feedback)
+    st.session_state.messages.append({"role": "assistant", 
+                                      "content": full_response, 
+                                      "trace_link": st.session_state.share_run_url,
+                                      "feedback": True if st.session_state.get("feedback_output_render") else False
+                                      }
+                                     )

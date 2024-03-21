@@ -24,9 +24,13 @@ Summary = """
             Once selected and clicked load. If random artucle is selected, then generate a random number generator using random.choices (__Thanks to @Neeltje for this elegent solution__)
         ## GENERATING QUESTIONS
         """
-
-os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_EVAL_PROJECT"]
-os.environ["LANGCHAIN_RUN_NAME"] = "QA_Generation"
+if st.secrets.get("LANGCHAIN_API_KEY"):
+    os.environ["LANGCHAIN_TRACING_V2"] = st.secrets["LANGCHAIN_TRACING_V2"]
+    
+if "LANGCHAIN_PROJECT" not in os.environ:
+    os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_EVAL_PROJECT"]
+if "LANGCHAIN_RUN_NAME" not in os.environ:
+    os.environ["LANGCHAIN_RUN_NAME"] = "QA_Generation"
 articles = pd.read_csv(st.secrets.SOURCES_DETAILS, sep = ",")
 
 def compute_lim(GPT_CONTEXT_LEN:int = 12_000, CHAR_PER_TOKEN:int = 4):
