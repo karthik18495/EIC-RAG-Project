@@ -104,7 +104,7 @@ with st.sidebar:
                 DBProp[db_type]["search_config"]["metric"] = SimilarityDict[similiarty_score]
                 retriever = GetRetriever(db_type, DBProp[db_type]["vector_config"], DBProp[db_type]["search_config"])
                 st.session_state["retriever_init"] = True
-        with st.container(border = True):
+        with st.container(border = True, height = 200):
             st.header("Previous QA Chats")
             run_list = GetRunList(f"RAG-CHAT-{st.session_state.user_name}")
             for runs in run_list:
