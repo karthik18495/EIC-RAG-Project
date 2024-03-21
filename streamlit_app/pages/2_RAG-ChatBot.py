@@ -70,7 +70,7 @@ DBProp = {"LANCE" : {"vector_config" : {"db_name" : st.secrets["LANCEDB_DIR"],
 if "retriever_init" not in st.session_state:
     retriever = GetRetriever("PINECONE", DBProp["PINECONE"]["vector_config"], DBProp["PINECONE"]["search_config"])
 
-@st.cache_data(persist = True)
+@st.cache_data(ttl = 300)
 def GetRunList(name):
     runInfo = []
     if not client.has_project(name):
@@ -176,6 +176,7 @@ def submit_feedback():
                            correction = {"COMPLETE_RESPONSE": st.session_state.get("feedback_expected_response", "")},
                            source_info = {"arxiv_id": st.session_state.get("feedback_source_info", "")}
                            )
+    GetRunList.clear()
 
 if "user_avatar" not in st.session_state:
     st.session_state["user_avatar"] = random.choice(["😊", "😉", "🤗"])
@@ -220,6 +221,7 @@ if prompt := st.chat_input("What is up? Ask anything about the Electron Ion Coll
                         full_response += (chunk.get("answer") or "")
                         message_placeholder.markdown(full_response + "▌")
                     st.session_state.run_id = ccb.traced_runs[0].id
+                    st.session_state.chat_run_id = ccb.traced_runs[0].id
                     st.session_state.share_run_url = client.share_run(st.session_state.run_id)
         elif "enough info" in outdecide.lower():
             infocontainer.warning("I am going to answer this question with my knowledge.")

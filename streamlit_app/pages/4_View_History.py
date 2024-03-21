@@ -32,8 +32,8 @@ if st.secrets.get("LANGCHAIN_API_KEY"):
     os.environ["LANGCHAIN_TRACING_V2"] = "false"
     os.environ["LANGCHAIN_ENDPOINT"] = st.secrets["LANGCHAIN_ENDPOINT"]
 
-@st.cache_resource
-def GetRunList(name):
+@st.cache_resource(ttl = 300)
+def GetRunList(name, latestID):
     runs = {}
     if not client.has_project(name):
         return None
@@ -50,7 +50,7 @@ def GetRunList(name):
 # get the run from client
 
 client = Client()
-run_list = GetRunList(f"RAG-CHAT-{st.session_state.user_name}")
+run_list = GetRunList(f"RAG-CHAT-{st.session_state.user_name}", st.session_state.get("chat_run_id", ""))
 
 if not run_list:
     st.warning("No QA Chat logs found")
