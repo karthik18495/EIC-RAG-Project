@@ -316,7 +316,7 @@ with st.container(border = True):
         chain = RunQuestionGeneration(llm).with_config({"run_name" : os.environ["LANGCHAIN_RUN_NAME"]
                                 }
                                )
-        print ("WORD LIMIT: ", WORD_LIM)
+        #print ("WORD LIMIT: ", WORD_LIM)
         if (len(st.session_state["full_content"]) > WORD_LIM):
             with st.status(label = f"Article {st.session_state.article_id} is too large to load in memory.", state = "running", expanded = True) as status:
                 status.update(label = "Chunking it smaller to fit it.", state = "running", expanded = True)
