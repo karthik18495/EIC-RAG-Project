@@ -104,7 +104,7 @@ with st.sidebar:
                 DBProp[db_type]["search_config"]["metric"] = SimilarityDict[similiarty_score]
                 retriever = GetRetriever(db_type, DBProp[db_type]["vector_config"], DBProp[db_type]["search_config"])
                 st.session_state["retriever_init"] = True
-        with st.container(border = True, height = 200):
+        with st.container(border = True, height = 400):
             st.header("Previous QA Chats")
             run_list = GetRunList(f"RAG-CHAT-{st.session_state.user_name}")
             for runs in run_list:
@@ -224,17 +224,20 @@ if prompt := st.chat_input("What is up? Ask anything about the Electron Ion Coll
                     st.session_state.chat_run_id = ccb.traced_runs[0].id
                     st.session_state.share_run_url = client.share_run(st.session_state.run_id)
         elif "enough info" in outdecide.lower():
+            st.session_state.share_run_url = None
             infocontainer.warning("I am going to answer this question with my knowledge.")
             for chunk in CreativeChain(llm).stream({"question" : prompt}):
                 full_response += (chunk.get("answer") or "")
                 message_placeholder.markdown(full_response + "▌")
         else:
+            st.session_state.share_run_url = None
             infocontainer.error("I am not sure if I can answer this question. I will try to answer it with my knowledge.")
             for chunk in GeneralChain(llm).stream({"question" : prompt}):
                 full_response += (chunk.get("answer") or "")
                 message_placeholder.markdown(full_response + "▌")
         message_placeholder.markdown(full_response + "▌")
-        trace_link.subheader(f"[View the trace 🛠️]({st.session_state.share_run_url})")
+        if st.session_state.get("share_run_url"):
+            trace_link.subheader(f"[View the trace 🛠️]({st.session_state.share_run_url})")
     with feedback_container.container(border = True):
         with st.form("Feedback for the generation"):
             _colf1, _colf2 = st.columns([1, 1])

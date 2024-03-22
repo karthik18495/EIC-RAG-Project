@@ -9,8 +9,6 @@ from langchain.document_loaders import TextLoader
 from langchain.embeddings import OpenAIEmbeddings
 import argparse, os, arxiv
 
-os.environ["OPENAI_API_KEY"] = "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"
-
 embeddings = OpenAIEmbeddings()
 
 from langchain.vectorstores import LanceDB
