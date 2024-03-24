@@ -196,6 +196,7 @@ if prompt := st.chat_input("What is up? Ask anything about the Electron Ion Coll
         message_placeholder = st.empty()
         trace_link = st.empty()
         feedback_container = st.empty()
+        st.session_state.share_run_url = None
         if "more info" in outdecide.lower():
             infocontainer.info("Gathering info from Knowledge Bank for this query...")
             run_name = llm.invoke(f"""
