@@ -239,30 +239,31 @@ if prompt := st.chat_input("What is up? Ask anything about the Electron Ion Coll
         message_placeholder.markdown(full_response + "▌")
         if st.session_state.get("share_run_url"):
             trace_link.subheader(f"[View the trace 🛠️]({st.session_state.share_run_url})")
-    with feedback_container.container(border = True):
-        with st.form("Feedback for the generation"):
-            _colf1, _colf2 = st.columns([1, 1])
-            with _colf1:
-                fdbk_output_render = st.selectbox("Has the output been displayed properly?", 
-                                                ["Yes", "No"], index = None,
-                                                key = "feedback_output_render"
-                                                )
-            with _colf2:
-                fdbk_output_quality = st.number_input("Rate the quality of the output, Min = 0, Max = 5", 
-                                                    min_value = 0, max_value = 5, 
-                                                    key = "feedback_output_quality"
+    if st.session_state.share_run_url:
+        with feedback_container.container(border = True):
+            with st.form("Feedback for the generation"):
+                _colf1, _colf2 = st.columns([1, 1])
+                with _colf1:
+                    fdbk_output_render = st.selectbox("Has the output been displayed properly?", 
+                                                    ["Yes", "No"], index = None,
+                                                    key = "feedback_output_render"
                                                     )
-            fdbk_expected_response = st.text_area("What was your expected response?", value = "",
-                                                  key = "feedback_expected_response",
-                                                  placeholder = "What is an ideal response for this query?",
-                                                  help = "What is an ideal response for this query?"
-                                                  )
-            fdbk_source_info = st.text_input("What was the source of the question?", value = "",
-                                             key = "feedback_source_info",
-                                             placeholder = "Where did you get this query from, ideally this is the arxiv_id that is used for testing purpose?",
-                                             help = "Where did you get this query from?"
-                                             )
-            submit = st.form_submit_button("Submit Feedback", on_click = submit_feedback)
+                with _colf2:
+                    fdbk_output_quality = st.number_input("Rate the quality of the output, Min = 0, Max = 5", 
+                                                        min_value = 0, max_value = 5, 
+                                                        key = "feedback_output_quality"
+                                                        )
+                fdbk_expected_response = st.text_area("What was your expected response?", value = "",
+                                                      key = "feedback_expected_response",
+                                                      placeholder = "What is an ideal response for this query?",
+                                                      help = "What is an ideal response for this query?"
+                                                      )
+                fdbk_source_info = st.text_input("What was the source of the question?", value = "",
+                                                 key = "feedback_source_info",
+                                                 placeholder = "Where did you get this query from, ideally this is the arxiv_id that is used for testing purpose?",
+                                                 help = "Where did you get this query from?"
+                                                 )
+                submit = st.form_submit_button("Submit Feedback", on_click = submit_feedback)
     st.session_state.messages.append({"role": "assistant", 
                                       "content": full_response, 
                                       "trace_link": st.session_state.share_run_url,
