@@ -76,7 +76,7 @@ def GetRunList(name):
     if not client.has_project(name):
         return runInfo
     run_list = client.list_runs(project_name = name, 
-                                start_time = datetime.now() - timedelta(days = 7),
+                                start_time = datetime.now() - timedelta(days = 1),
                                 execution_order = 1
                                 )
     for runs in run_list:
