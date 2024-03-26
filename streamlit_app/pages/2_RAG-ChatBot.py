@@ -104,15 +104,16 @@ with st.sidebar:
                 DBProp[db_type]["search_config"]["metric"] = SimilarityDict[similiarty_score]
                 retriever = GetRetriever(db_type, DBProp[db_type]["vector_config"], DBProp[db_type]["search_config"])
                 st.session_state["retriever_init"] = True
-        with st.container(border = True, height = 400):
-            st.header("Previous QA Chats")
-            run_list = GetRunList(f"RAG-CHAT-{st.session_state.user_name}")
-            for runs in run_list:
+        
+        #with st.container(border = True, height = 400):
+        #    st.header("Previous QA Chats")
+        #    run_list = GetRunList(f"RAG-CHAT-{st.session_state.user_name}")
+        #    for runs in run_list:
                 #st.button(runs["runName"], key = str(runs["runID"]), on_click = OpenHistoryPage, args = (runs["runID"],),
                 #              help = f"Click to open the chat history of " + runs["runName"] + " and you can find more information in langsmith here: " + runs["runLink"]
                 #              )
-                st.link_button(label = runs["runName"], url = runs["runLink"], help = f"Click to find more information in langsmith here: " + runs["runLink"]
-                               )
+        #        st.link_button(label = runs["runName"], url = runs["runLink"], help = f"Click to find more information in langsmith here: " + runs["runLink"]
+        #                       )
             
 
 if "retriever_init" in st.session_state:
