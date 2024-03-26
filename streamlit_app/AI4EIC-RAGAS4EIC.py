@@ -38,7 +38,7 @@ col_l, col1, col2, col_r = st.columns([1, 3, 3, 1])
 with col1:
     st.image("https://indico.bnl.gov/event/19560/logo-410523303.png")
 with col2:
-    st.title("""AI4EIC-RAG System""", anchor = "AI4EIC-RAG-QA-Bot", help = "Will Link to arxiv proceeding here.")
+    st.title("""AI4EIC-RAG System""", anchor = "AI4EIC-RAG-QA-Bot", help = "Check out the arxiv proceeding [here](https://arxiv.org/abs/2403.15729)")
 
 if st.session_state.get("user_name"):
     with st.sidebar:
